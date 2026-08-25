@@ -1,0 +1,250 @@
+import { Response } from 'express';
+import { AuthRequest } from '../middlewares/authMiddleware.js';
+import { UserModel } from '../models/userModel.js';
+import { ProductModel } from '../models/productModel.js';
+import { OrderModel } from '../models/orderModel.js';
+import { analyzeProductImageWithAI } from '../services/aiService.js';
+
+/**
+ * Obtener estadísticas globales de ventas, clientes, pedidos y productos
+ */
+export const getAdminStats = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const [salesStats, productStats, totalUsers] = await Promise.all([
+      OrderModel.getSalesStats(),
+      ProductModel.getStats(),
+      UserModel.countUsers()
+    ]);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalRevenue: salesStats.totalRevenue,
+        totalOrders: salesStats.totalOrders,
+        completedOrders: salesStats.completedOrders,
+        pendingOrders: salesStats.pendingOrders,
+        totalUsers,
+        totalProducts: productStats.totalProducts,
+        totalStock: productStats.totalStock
+      }
+    });
+  } catch (error: any) {
+    console.error('Error al obtener estadísticas de admin:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al cargar las estadísticas de la tienda.'
+    });
+  }
+};
+
+/**
+ * Obtener todos los pedidos para el panel de administración
+ */
+export const getAdminOrders = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const orders = await OrderModel.findAll();
+    res.status(200).json({
+      success: true,
+      orders
+    });
+  } catch (error: any) {
+    console.error('Error al obtener pedidos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener el listado de pedidos.'
+    });
+  }
+};
+
+/**
+ * Actualizar el estado de un pedido
+ */
+export const updateOrderStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const orderId = Number(req.params.id);
+    const { estado } = req.body;
+
+    const validStates = ['pendiente', 'pagado', 'preparando', 'enviado', 'entregado', 'cancelado'];
+    if (!validStates.includes(estado)) {
+      res.status(400).json({
+        success: false,
+        message: 'Estado de pedido no válido.'
+      });
+      return;
+    }
+
+    const updated = await OrderModel.updateStatus(orderId, estado);
+    if (!updated) {
+      res.status(404).json({
+        success: false,
+        message: 'Pedido no encontrado.'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Estado del pedido #${orderId} actualizado a "${estado}".`
+    });
+  } catch (error: any) {
+    console.error('Error actualizando estado del pedido:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el estado del pedido.'
+    });
+  }
+};
+
+/**
+ * Obtener lista de clientes registrados para seguimiento de compradores
+ */
+export const getAdminUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const users = await UserModel.findAllClients();
+    res.status(200).json({
+      success: true,
+      users
+    });
+  } catch (error: any) {
+    console.error('Error al obtener clientes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener la lista de clientes.'
+    });
+  }
+};
+
+/**
+ * Crear un nuevo producto individual desde el panel de administración
+ */
+export const createAdminProduct = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { nombre, descripcion, precio, stock, imagen, categoria } = req.body;
+
+    if (!nombre || !precio || isNaN(Number(precio))) {
+      res.status(400).json({
+        success: false,
+        message: 'El nombre y el precio del producto son obligatorios y deben ser válidos.'
+      });
+      return;
+    }
+
+    const productId = await ProductModel.create({
+      nombre: String(nombre).trim(),
+      descripcion: descripcion ? String(descripcion).trim() : null,
+      precio: Number(precio),
+      stock: stock !== undefined && !isNaN(Number(stock)) ? Number(stock) : 10,
+      imagen: imagen ? String(imagen).trim() : '/assets/im1.jpeg',
+      categoria: categoria ? String(categoria).trim() : 'Pulseras',
+      activo: 1
+    });
+
+    const newProduct = await ProductModel.findById(productId);
+
+    res.status(201).json({
+      success: true,
+      message: '¡Producto creado y agregado al catálogo con éxito!',
+      product: newProduct
+    });
+  } catch (error: any) {
+    console.error('Error al crear producto:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al guardar el producto en el catálogo.'
+    });
+  }
+};
+
+/**
+ * =====================================================================
+ * CONTROLADORES DE INTELIGENCIA ARTIFICIAL & CARGA MASIVA
+ * =====================================================================
+ */
+
+/**
+ * 1. Analizar imagen con IA para autocompletar campos (nombre, descripción, categoría, precio)
+ * 
+ * Flujo:
+ * - Recibe el archivo de imagen subido por el middleware Multer.
+ * - Llama a aiService pasándole la ruta del archivo y su mimeType.
+ * - Construye la URL estática accesible para el navegador.
+ * - Devuelve al frontend los datos analizados por la IA junto con la URL de la imagen.
+ */
+export const analyzeProductImage = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        message: 'No se ha proporcionado ningún archivo de imagen para analizar.'
+      });
+      return;
+    }
+
+    // Ejecutamos el análisis con Google Gemini Multimodal
+    const analysis = await analyzeProductImageWithAI(req.file.path, req.file.mimetype);
+
+    // Resolvemos la URL accesible públicamente para el frontend
+    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+    res.status(200).json({
+      success: true,
+      message: 'Imagen analizada con éxito por la Inteligencia Artificial.',
+      analysis,
+      imageUrl
+    });
+  } catch (error: any) {
+    console.error('Error al analizar imagen con IA:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ocurrió un error al intentar analizar la imagen con Inteligencia Artificial.'
+    });
+  }
+};
+
+/**
+ * 2. Carga Masiva: Crear un lote de múltiples productos en la base de datos de una sola vez
+ * 
+ * Flujo:
+ * - Recibe un array de productos [{ nombre, descripcion, precio, stock, imagen, categoria }, ...]
+ * - Valida que contenga al menos 1 producto y que los campos requeridos estén presentes.
+ * - Llama a ProductModel.createMany(...) para ejecutar una única inserción SQL eficiente.
+ */
+export const bulkCreateAdminProducts = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { products } = req.body;
+
+    if (!Array.isArray(products) || products.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Debes enviar una lista de al menos un producto para realizar la carga masiva.'
+      });
+      return;
+    }
+
+    // Filtrar y sanear productos válidos
+    const validProducts = products.filter((p) => p.nombre && p.precio !== undefined && !isNaN(Number(p.precio)));
+
+    if (validProducts.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Ninguno de los productos en la lista cuenta con un nombre y precio válidos.'
+      });
+      return;
+    }
+
+    const insertedCount = await ProductModel.createMany(validProducts);
+
+    res.status(201).json({
+      success: true,
+      message: `¡Se agregaron con éxito ${insertedCount} productos al catálogo de Chunna!`,
+      insertedCount
+    });
+  } catch (error: any) {
+    console.error('Error en carga masiva de productos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al registrar el lote de productos en la base de datos.'
+    });
+  }
+};
+
