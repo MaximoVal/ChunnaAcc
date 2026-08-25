@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert, Spinner, Badge } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 /**
  * Interfaz para los items comprados dentro de un pedido
@@ -93,7 +94,7 @@ export const ProfileModal: React.FC = () => {
     setOrdersError(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders/my-orders', {
+      const response = await fetch(`${API_BASE_URL}/orders/my-orders`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -133,7 +134,7 @@ export const ProfileModal: React.FC = () => {
     setLoadingDetailsMap(prev => ({ ...prev, [orderId]: true }));
 
     try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

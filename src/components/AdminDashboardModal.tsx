@@ -13,6 +13,7 @@ import {
   Alert
 } from 'react-bootstrap';
 import { useAuth, User } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 interface AdminStats {
   totalRevenue: number;
@@ -220,7 +221,7 @@ export const AdminDashboardModal: React.FC = () => {
       const formData = new FormData();
       formData.append('image', imageFile);
 
-      const res = await fetch('http://localhost:5000/api/admin/ai/analyze-image', {
+      const res = await fetch(`${API_BASE_URL}/admin/ai/analyze-image`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -333,7 +334,7 @@ export const AdminDashboardModal: React.FC = () => {
       const formData = new FormData();
       formData.append('image', item.file);
 
-      const res = await fetch('http://localhost:5000/api/admin/ai/analyze-image', {
+      const res = await fetch(`${API_BASE_URL}/admin/ai/analyze-image`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -427,7 +428,7 @@ export const AdminDashboardModal: React.FC = () => {
         activo: 1
       }));
 
-      const res = await fetch('http://localhost:5000/api/admin/ai/bulk-create', {
+      const res = await fetch(`${API_BASE_URL}/admin/ai/bulk-create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -461,7 +462,7 @@ export const AdminDashboardModal: React.FC = () => {
 
     try {
       // 1. Cargar Estadísticas
-      const statsRes = await fetch('http://localhost:5000/api/admin/stats', {
+      const statsRes = await fetch(`${API_BASE_URL}/admin/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (statsRes.ok) {
@@ -470,7 +471,7 @@ export const AdminDashboardModal: React.FC = () => {
       }
 
       // 2. Cargar Pedidos
-      const ordersRes = await fetch('http://localhost:5000/api/admin/orders', {
+      const ordersRes = await fetch(`${API_BASE_URL}/admin/orders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (ordersRes.ok) {
@@ -479,7 +480,7 @@ export const AdminDashboardModal: React.FC = () => {
       }
 
       // 3. Cargar Usuarios/Clientes
-      const usersRes = await fetch('http://localhost:5000/api/admin/users', {
+      const usersRes = await fetch(`${API_BASE_URL}/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (usersRes.ok) {
@@ -513,7 +514,7 @@ export const AdminDashboardModal: React.FC = () => {
   const handleUpdateOrderStatus = async (orderId: number, newStatus: string) => {
     if (!token) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -554,7 +555,7 @@ export const AdminDashboardModal: React.FC = () => {
         const formData = new FormData();
         formData.append('image', imageFile);
 
-        const uploadRes = await fetch('http://localhost:5000/api/admin/upload', {
+        const uploadRes = await fetch(`${API_BASE_URL}/admin/upload`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -569,7 +570,7 @@ export const AdminDashboardModal: React.FC = () => {
         finalImagenUrl = uploadData.url;
       }
 
-      const response = await fetch('http://localhost:5000/api/admin/products', {
+      const response = await fetch(`${API_BASE_URL}/admin/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,0 +1,33 @@
+# ========================================================
+# RENDER BLUEPRINT - CHUNNA ACCESORIOS
+# Este archivo permite desplegar tu proyecto en Render con un solo clic
+# ========================================================
+services:
+  - type: web
+    name: chunna-accesorios
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: chunna_db
+      - key: DB_SSL
+        value: "false"
+      - key: GEMINI_API_KEY
+        sync: false

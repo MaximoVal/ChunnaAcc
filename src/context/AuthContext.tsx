@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 export interface User {
   id: number;
@@ -54,7 +55,6 @@ interface AuthContextType {
   triggerProductsRefresh: () => void;
 }
 
-const API_BASE_URL = 'http://localhost:5000/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

@@ -3,6 +3,7 @@ import { Container, Row, Col, Spinner, Alert, Form, InputGroup, Button, Modal } 
 import ProductCard, { Product } from './ProductCard';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { API_BASE_URL, getImageUrl } from '../config/api';
 
 const MOCK_PRODUCTS: Product[] = [
   { id: 1, nombre: 'Pulsera Hilo Encerado Rust', precio: 1200, imagen: '/assets/im1.jpeg', categoria: 'macrame', descripcion: 'Diseño clásico en tonos terracota tejido a mano, ideal para combinar a diario.' },
@@ -47,7 +48,7 @@ export const ProductList: React.FC = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/products');
+      const response = await fetch(`${API_BASE_URL}/products`);
       if (!response.ok) {
         throw new Error('Error al conectar con la base de datos de productos.');
       }
@@ -55,6 +56,7 @@ export const ProductList: React.FC = () => {
       if (data.products && Array.isArray(data.products) && data.products.length > 0) {
         const mappedProducts = data.products.map((p: any) => ({
           ...p,
+          imagen: getImageUrl(p.imagen),
           categoria: determineCategory(p)
         }));
         setProducts(mappedProducts);

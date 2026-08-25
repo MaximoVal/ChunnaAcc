@@ -2,23 +2,39 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
 // Cargar variables de entorno
 dotenv.config();
 
 const app = express();
 
-// Middlewares globales
-app.use(cors());
+// Configuración dinámica de CORS para Render / Desarrollo
+const frontendUrl = process.env.FRONTEND_URL;
+const allowedOrigins = frontendUrl
+  ? [frontendUrl, 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000']
+  : '*';
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
 app.use(express.json());
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// Servir directorio de archivos multimedia subidos (/uploads)
+const uploadsPath = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsPath));
 
-// Endpoint de prueba/diagnóstico
+// Endpoint de diagnóstico del estado del backend en Render
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'Servidor de Chunna Accesorios corriendo correctamente.',
+    message: 'Servidor de Chunna Accesorios ejecutándose en Render correctamente.',
+    environment: process.env.NODE_ENV || 'development',
     timestamp: new Date()
   });
 });
@@ -28,11 +44,30 @@ import productRouter from './routes/productRoutes.js';
 import adminRouter from './routes/adminRoutes.js';
 import orderRouter from './routes/orderRoutes.js';
 
-// Registro de rutas
+// Registro de rutas API
 app.use('/api/auth', authRouter);
 app.use('/api/products', productRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/orders', orderRouter);
 
-export default app;
+// Servir la aplicación React (Vite dist) en producción cuando se despliega como servicio web único en Render
+const possibleDistPaths = [
+  path.join(process.cwd(), '../dist'),
+  path.join(process.cwd(), 'dist'),
+  path.join(process.cwd(), 'public')
+];
 
+const distPath = possibleDistPaths.find(p => fs.existsSync(path.join(p, 'index.html')));
+
+if (distPath) {
+  console.log(`📦 Sirviendo cliente estático desde: ${distPath}`);
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
+export default app;
