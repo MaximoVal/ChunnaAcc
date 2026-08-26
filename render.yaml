@@ -1,6 +1,7 @@
 # ========================================================
-# RENDER BLUEPRINT - CHUNNA ACCESORIOS
-# Este archivo permite desplegar tu proyecto en Render con un solo clic
+# RENDER BLUEPRINT - CHUNNA ACCESORIOS (FULLSTACK)
+# Despliega Frontend (React/Vite) + Backend (Node/Express/Sequelize)
+# en un único Web Service en Render
 # ========================================================
 services:
   - type: web
@@ -13,10 +14,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@chunna.com
+      # Opción 1: Conexión directa mediante URL (Recomendado para Aiven, Railway, TiDB, etc.)
+      - key: DATABASE_URL
+        sync: false
+      # Opción 2: Variables individuales (usadas si DATABASE_URL no está definida)
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -28,6 +33,15 @@ services:
       - key: DB_NAME
         value: chunna_db
       - key: DB_SSL
-        value: "false"
+        value: "true"
+      # Inteligencia Artificial Google Gemini
       - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      # Integración Meta / Instagram (Opcional)
+      - key: META_VERIFY_TOKEN
+        value: chunna_meta_webhook_token_2026
+      - key: PAGE_ACCESS_TOKEN
+        sync: false
+

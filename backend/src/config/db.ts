@@ -12,8 +12,10 @@ const dbPassword = process.env.DB_PASSWORD || '';
 const dbHost = process.env.DB_HOST || 'localhost';
 const dbPort = Number(process.env.DB_PORT || 3306);
 
-// Opción de SSL para bases de datos MySQL administradas en la nube
-const useSSL = process.env.DB_SSL === 'true' || process.env.DB_SSL === '1';
+// Opción de SSL para bases de datos MySQL administradas en la nube (Aiven, Railway, TiDB, etc.)
+const useSSL = process.env.DB_SSL !== undefined
+  ? (process.env.DB_SSL === 'true' || process.env.DB_SSL === '1')
+  : (process.env.NODE_ENV === 'production' && Boolean(databaseUrl));
 
 const dialectOptions = useSSL
   ? {
