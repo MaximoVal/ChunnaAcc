@@ -62,7 +62,7 @@ Order.init(
       defaultValue: 'PENDING_PAYMENT'
     },
     user_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
       references: {
         model: 'users',
