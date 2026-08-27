@@ -4,48 +4,65 @@ import { User, UserModel, normalizeEmail } from '../models/userModel.js';
 import { Product } from '../models/productModel.js';
 
 export const initDb = async () => {
+  console.log('\n================================================================');
+  console.log('🔄 [INIT DB] Iniciando verificación e inicialización de la base de datos...');
+  console.log('================================================================');
+
+  // 1. Sincronizar modelos con Sequelize (sin romper si las tablas ya existen)
   try {
-    // 1. Sincronizar modelos (sin alter para evitar conflictos con FK constraints en producción)
-    // Si necesitas añadir columnas nuevas, hazlo con ALTER TABLE manual o con migraciones.
     await sequelize.sync();
-    console.log('✅ Tablas sincronizadas con Sequelize (sync sin alter).');
+    console.log('✅ [INIT DB] Tablas y relaciones sincronizadas con Sequelize.');
+  } catch (syncError: any) {
+    console.warn('⚠️ [INIT DB] Advertencia en sequelize.sync():', syncError.message);
+    console.warn('   (Las tablas existentes seguirán operativas)');
+  }
 
-    // 2. Crear cuenta de Administrador si no existe
-    const officialAdminEmail = normalizeEmail(process.env.ADMIN_EMAIL || 'cunna.accs@gmail.com');
-    const existingAdmin = await UserModel.findByEmail(officialAdminEmail);
+  // 2. Precargar / Sincronizar cuentas de Administrador
+  try {
+    const adminEmails = [
+      process.env.ADMIN_EMAIL,
+      'cunna.accs@gmail.com',
+      'cunn.accs@gmail.com',
+      'chunna.accs@gmail.com',
+      'admin@chunna.com'
+    ]
+      .filter(Boolean)
+      .map((e) => normalizeEmail(e as string));
 
-    if (!existingAdmin) {
-      const salt = await bcrypt.genSalt(10);
-      const defaultAdminHash = await bcrypt.hash('2620070212', salt);
+    const uniqueAdminEmails = Array.from(new Set(adminEmails));
 
-      await User.create({
-        name: 'Administrador Chunna',
-        email: officialAdminEmail,
-        password: defaultAdminHash,
-        role: 'admin',
-        phone: '+54 9 11 0000-0000',
-        city: 'Córdoba',
-        notes: 'Administrador principal de Chunna Accesorios'
-      });
-      console.log(`👑 Cuenta Administrador creada: ${officialAdminEmail} (Contraseña: 2620070212)`);
-    } else {
-      // Verificar si la contraseña del admin necesita ser actualizada
-      const currentPassword = existingAdmin.password || existingAdmin.getDataValue('password') || '';
-      let isDefaultValid = false;
-      if (currentPassword.startsWith('$2a$') || currentPassword.startsWith('$2b$') || currentPassword.startsWith('$2y$')) {
-        isDefaultValid = await bcrypt.compare('2620070212', currentPassword).catch(() => false);
+    const salt = await bcrypt.genSalt(10);
+    const defaultAdminHash = await bcrypt.hash('2620070212', salt);
+
+    for (const adminEmail of uniqueAdminEmails) {
+      const existingUser = await UserModel.findByEmail(adminEmail);
+
+      if (!existingUser) {
+        await User.create({
+          name: 'Administrador Chunna',
+          email: adminEmail,
+          password: defaultAdminHash,
+          role: 'admin',
+          phone: '+54 9 11 0000-0000',
+          city: 'Córdoba',
+          notes: 'Administrador principal de Chunna Accesorios'
+        });
+        console.log(`👑 [INIT DB] Cuenta de Administrador creada exitosamente: ${adminEmail} (Contraseña: 2620070212)`);
+      } else {
+        // Asegurar que tenga ROL ADMIN y contraseña actualizada (incluso si se registró antes como cliente)
+        await existingUser.update({
+          role: 'admin',
+          password: defaultAdminHash
+        });
+        console.log(`👑 [INIT DB] Rol y credenciales de Administrador forzados a 'admin': ${adminEmail} (Contraseña: 2620070212)`);
       }
-      
-      if (!isDefaultValid && (currentPassword === '2620070212' || currentPassword === '$2b$10$wzW1iP8zKovn/QpU7Kq1s.uE9mF5uXvT5a3N1pYk9b8zLqXy7q1s2')) {
-        const salt = await bcrypt.genSalt(10);
-        const defaultAdminHash = await bcrypt.hash('2620070212', salt);
-        await UserModel.updatePassword(existingAdmin.id, defaultAdminHash);
-        console.log(`👑 Contraseña del Administrador actualizada con hash bcrypt válido.`);
-      }
-      console.log(`👑 Administrador verificado: ${officialAdminEmail}`);
     }
+  } catch (adminError: any) {
+    console.error('❌ [INIT DB] Error asegurando cuentas de Administrador:', adminError.message);
+  }
 
-    // 3. Precargar catálogo inicial si la tabla de productos está vacía
+  // 3. Precargar catálogo inicial si la tabla de productos está vacía
+  try {
     const countProducts = await Product.count();
     if (countProducts === 0) {
       await Product.bulkCreate([
@@ -80,12 +97,13 @@ export const initDb = async () => {
           precio: 1600.00, stock: 30, imagen: '/assets/im6.jpeg', categoria: 'mostacillas', activo: true
         }
       ]);
-      console.log('✅ Catálogo inicial de productos precargado.');
+      console.log('✅ [INIT DB] Catálogo inicial de productos precargado con éxito.');
     }
-
-    console.log('✅ Inicialización de base de datos completada.');
-  } catch (error: any) {
-    console.error('❌ Error en initDb:', error.message);
-    // No lanzamos el error — el servidor sigue funcionando aunque initDb falle
+  } catch (productError: any) {
+    console.error('❌ [INIT DB] Error precargando catálogo de productos:', productError.message);
   }
+
+  console.log('================================================================');
+  console.log('✅ [INIT DB] Inicialización completada.');
+  console.log('================================================================\n');
 };

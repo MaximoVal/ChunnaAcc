@@ -61,9 +61,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
 User.init(
   {
     id: {
-      // Usar INTEGER normal (no UNSIGNED) para coincidir exactamente con la tabla MySQL
-      // que usa INT AUTO_INCREMENT — evita conflictos con ALTER TABLE en sync
-      type: DataTypes.INTEGER,
+      type: DataTypes.INTEGER.UNSIGNED,
       autoIncrement: true,
       primaryKey: true
     },
