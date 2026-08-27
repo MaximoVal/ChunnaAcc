@@ -16,9 +16,11 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 365d
       - key: ADMIN_EMAIL
         value: cunna.accs@gmail.com
-      # Opción 1: Conexión directa mediante URL (Recomendado para Aiven, Railway, TiDB, etc.)
+      # Opción 1: Conexión directa mediante URL (Recomendado para Aiven, Railway, TiDB, Clever Cloud, etc.)
       - key: DATABASE_URL
         sync: false
       # Opción 2: Variables individuales (usadas si DATABASE_URL no está definida)
@@ -34,6 +36,11 @@ services:
         value: chunna_db
       - key: DB_SSL
         value: "true"
+      # Servicio de Correo Oficial: Resend API (HTTP REST vía HTTPS - 100% compatible con Render)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: Chunna Accesorios <onboarding@resend.dev>
       # Inteligencia Artificial Google Gemini
       - key: GEMINI_API_KEY
         sync: false
@@ -43,13 +50,4 @@ services:
       - key: META_VERIFY_TOKEN
         value: chunna_meta_webhook_token_2026
       - key: PAGE_ACCESS_TOKEN
-        sync: false
-      # Configuración de Correo Electrónico (2FA para Administrador)
-      # Método A: Gmail SMTP (Requiere Contraseña de Aplicación de 16 letras)
-      - key: EMAIL_USER
-        value: cunna.accs@gmail.com
-      - key: EMAIL_PASS
-        sync: false
-      # Método B (Alternativa Ultra-Confiable HTTP REST en Render): Resend API
-      - key: RESEND_API_KEY
         sync: false
