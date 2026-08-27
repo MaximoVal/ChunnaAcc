@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { UserModel } from '../models/userModel.js';
+import { Sequelize } from 'sequelize';
+import { User, UserModel } from '../models/userModel.js';
 import { AuthRequest } from '../middlewares/authMiddleware.js';
+import { emailService } from '../services/emailService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'chunna_secreto_super_seguro_2026';
 const JWT_EXPIRES_IN = '365d'; // Mantiene la sesión iniciada por 1 año
@@ -14,9 +16,13 @@ const JWT_EXPIRES_IN = '365d'; // Mantiene la sesión iniciada por 1 año
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, phone, address, city, notes } = req.body;
+    const cleanEmail = String(email || '').trim().toLowerCase();
 
     // Verificar si el correo ya existe
-    const existingUser = await UserModel.findByEmail(email);
+    const existingUser = await User.findOne({
+      where: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanEmail)
+    }) || await UserModel.findByEmail(cleanEmail);
+
     if (existingUser) {
       res.status(409).json({
         success: false,
@@ -32,7 +38,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Crear el usuario en la BD SIEMPRE con rol 'cliente'
     const userId = await UserModel.create({
       name,
-      email,
+      email: cleanEmail,
       password: hashedPassword,
       role: 'cliente',
       phone,
@@ -43,7 +49,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Generar el token JWT incluyendo el rol
     const token = jwt.sign(
-      { id: userId, email, name, role: 'cliente' },
+      { id: userId, email: cleanEmail, name, role: 'cliente' },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -65,88 +71,19 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-import nodemailer from 'nodemailer';
-import { User } from '../models/userModel.js'; // To access sequelize model directly for updates
-
-// Helper para enviar correo de forma 100% asíncrona forzando IPv4 (para evitar ENETUNREACH en Render)
-const sendOtpEmailAsync = async (toEmail: string, userName: string, otpCode: string) => {
-  const emailUser = (process.env.EMAIL_USER || 'cunna.accs@gmail.com').trim();
-  const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
-
-  if (!emailPass) {
-    console.warn('⚠️ [ALERTA 2FA]: La variable EMAIL_PASS no está configurada en Render.');
-    return;
-  }
-
-  const mailOptions = {
-    from: `"Chunna Accesorios" <${emailUser}>`,
-    to: toEmail,
-    subject: `🔐 Código de verificación Admin: ${otpCode}`,
-    text: `Hola ${userName},\n\nTu código de verificación para ingresar como Administrador es: ${otpCode}\n\nEste código expira en 10 minutos.\nSi no intentaste iniciar sesión, ignora este mensaje.`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 25px; border: 1px solid #eaeaea; border-radius: 12px; background-color: #ffffff;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #c86d51; margin: 0; font-size: 24px; font-weight: 700;">Chunna Accesorios</h2>
-          <p style="color: #666; font-size: 13px; margin-top: 4px;">Seguridad de la Cuenta Administrador</p>
-        </div>
-        <p style="font-size: 15px; color: #333; margin-bottom: 12px;">Hola <strong>${userName}</strong>,</p>
-        <p style="font-size: 14px; color: #555; line-height: 1.5;">Ingresa el siguiente código de verificación de 6 dígitos en la tienda para confirmar tu identidad:</p>
-        <div style="background-color: #fcf4f1; border: 1.5px dashed #c86d51; padding: 18px; text-align: center; border-radius: 8px; margin: 22px 0;">
-          <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #c86d51;">${otpCode}</span>
-        </div>
-        <p style="color: #777; font-size: 13px; margin-bottom: 4px;">⏳ <strong>Tiempo de validez:</strong> 10 minutos.</p>
-        <p style="color: #aaa; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">Si tú no solicitaste este código, por favor ignora este correo.</p>
-      </div>
-    `
-  };
-
-  // Intento 1: Puerto 465 (SSL) forzando IPv4 (family: 4)
-  try {
-    const transporter465 = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      family: 4,
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 8000
-    } as any);
-
-    await transporter465.sendMail(mailOptions);
-    console.log(`✅ [2FA] Correo con código OTP enviado exitosamente a ${toEmail} (vía SSL 465 IPv4)`);
-    return;
-  } catch (err465: any) {
-    console.warn(`⚠️ [2FA] Envío por puerto 465 IPv4 falló (${err465?.message}). Reintentando por puerto 587 STARTTLS IPv4...`);
-  }
-
-  // Intento 2: Puerto 587 (STARTTLS) forzando IPv4 (family: 4)
-  try {
-    const transporter587 = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      family: 4,
-      auth: { user: emailUser, pass: emailPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 8000
-    } as any);
-
-    await transporter587.sendMail(mailOptions);
-    console.log(`✅ [2FA] Correo con código OTP enviado exitosamente a ${toEmail} (vía STARTTLS 587 IPv4)`);
-  } catch (err587: any) {
-    console.error('❌ [2FA ERROR] No se pudo enviar el correo vía Gmail SMTP en ningún puerto:', err587?.message || err587);
-  }
-};
-
 /**
  * Inicio de sesión con soporte 2FA para administradores
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
+    const cleanEmail = String(email || '').trim().toLowerCase();
 
-    // Buscar al usuario por correo
-    const user = await UserModel.findByEmail(email);
+    // Buscar al usuario de manera insensible a mayúsculas/minúsculas
+    const user = await User.findOne({
+      where: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanEmail)
+    }) || await UserModel.findByEmail(cleanEmail);
+
     if (!user || !user.password) {
       res.status(401).json({
         success: false,
@@ -165,40 +102,40 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // SI ES ADMIN: Habilitar 2FA
+    // SI ES ADMIN: Habilitar autenticación de doble factor (2FA)
     if (user.role === 'admin') {
-      // Generar código OTP de 6 dígitos
+      // Generar código OTP de 6 dígitos numéricos
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpExpires = new Date();
-      otpExpires.setMinutes(otpExpires.getMinutes() + 10); // 10 minutos de validez
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos de validez
 
       // Guardar OTP en la base de datos
       await User.update({ otp_code: otpCode, otp_expires: otpExpires }, { where: { id: user.id } });
 
-      // Imprimir de inmediato en logs de Render para acceso instantáneo
-      console.log(`🔑 [ADMIN 2FA CODE]: El código para ${user.email} es: ${otpCode}`);
+      // Disparar envío de correo en segundo plano
+      emailService.sendAdminOtpEmail({
+        to: user.email,
+        userName: user.name,
+        otpCode
+      });
 
-      // Disparar envío de correo en segundo plano (asíncrono con IPv4)
-      sendOtpEmailAsync(user.email, user.name, otpCode);
-
-      // Responder INMEDIATAMENTE al navegador para que muestre el campo del código al instante
+      // Responder de inmediato al navegador para que solicite el código
       res.status(200).json({
         success: true,
         requires2FA: true,
-        message: 'Por seguridad, te enviamos un código de verificación de 6 dígitos a tu correo.'
+        message: `Por seguridad, te enviamos un código de verificación de 6 dígitos a ${user.email}.`
       });
       return;
     }
 
-    // Generar el token JWT incluyendo el rol (para clientes normales)
+    // Para clientes normales: Generar el token JWT directamente
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, role: user.role },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    // Retornar datos del usuario sin la contraseña
-    const { password: _, ...userData } = user;
+    // Retornar datos del usuario sin la contraseña ni tokens internos
+    const { password: _, otp_code: __, otp_expires: ___, ...userData } = (user instanceof User ? user.get({ plain: true }) : user) as any;
 
     res.status(200).json({
       success: true,
@@ -221,30 +158,78 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const verifyAdminLogin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, otp_code } = req.body;
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanOtp = String(otp_code || '').replace(/\D/g, '').trim();
 
-    const user = await User.findOne({ where: { email } });
+    if (!cleanEmail) {
+      res.status(400).json({
+        success: false,
+        message: 'El correo electrónico es requerido.'
+      });
+      return;
+    }
+
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      res.status(400).json({
+        success: false,
+        message: 'El código de verificación debe tener 6 dígitos numéricos.'
+      });
+      return;
+    }
+
+    // Buscar al usuario administrador de forma insensible a mayúsculas/minúsculas
+    const user = await User.findOne({
+      where: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanEmail)
+    }) || await User.findOne({ where: { email: cleanEmail } });
+
     if (!user || user.role !== 'admin') {
-      res.status(401).json({ success: false, message: 'No autorizado' });
+      console.warn(`⚠️ [2FA VERIFY] Intento fallido: No se encontró cuenta admin para: '${cleanEmail}'`);
+      res.status(401).json({
+        success: false,
+        message: 'No se encontró una cuenta de Administrador con el correo electrónico proporcionado.'
+      });
       return;
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      res.status(401).json({ success: false, message: 'Credenciales inválidas' });
+    // Si se envía contraseña, verificarla opcionalmente por seguridad adicional
+    if (password) {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        console.warn(`⚠️ [2FA VERIFY] Contraseña incorrecta al verificar 2FA para: '${cleanEmail}'`);
+        res.status(401).json({
+          success: false,
+          message: 'La contraseña ingresada es incorrecta.'
+        });
+        return;
+      }
+    }
+
+    // Verificar código OTP
+    const storedOtp = String(user.otp_code || '').trim();
+    if (!storedOtp || storedOtp !== cleanOtp) {
+      console.warn(`⚠️ [2FA VERIFY] Código no coincide para '${cleanEmail}'. Recibido: '${cleanOtp}', Esperado: '${storedOtp}'`);
+      res.status(401).json({
+        success: false,
+        message: 'El código de verificación ingresado es incorrecto.'
+      });
       return;
     }
 
-    // Verificar OTP
-    const cleanOtp = String(otp_code || '').trim();
-    if (!user.otp_code || user.otp_code.trim() !== cleanOtp || !user.otp_expires || new Date() > new Date(user.otp_expires)) {
-      res.status(401).json({ success: false, message: 'El código de verificación es inválido o ha expirado.' });
+    // Verificar si el código ha expirado
+    const isExpired = !user.otp_expires || new Date(user.otp_expires).getTime() < Date.now();
+    if (isExpired) {
+      console.warn(`⚠️ [2FA VERIFY] Código expirado para '${cleanEmail}'. Fecha exp: ${user.otp_expires}`);
+      res.status(401).json({
+        success: false,
+        message: 'El código de verificación ha expirado (validez de 10 minutos). Solicita un nuevo código.'
+      });
       return;
     }
 
-    // Limpiar OTP
+    // Limpiar el código OTP tras una verificación exitosa
     await user.update({ otp_code: null, otp_expires: null });
 
-    // Generar el token JWT
+    // Generar el token JWT para el administrador
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, role: user.role },
       JWT_SECRET,
@@ -252,6 +237,8 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
     );
 
     const { password: _, otp_code: __, otp_expires: ___, ...userData } = user.get({ plain: true });
+
+    console.log(`👑 [2FA VERIFY SUCCESS] Sesión iniciada con éxito para el Administrador: ${cleanEmail}`);
 
     res.status(200).json({
       success: true,
@@ -261,7 +248,75 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
     });
   } catch (error: any) {
     console.error('Error verificando 2FA:', error);
-    res.status(500).json({ success: false, message: 'Error en el servidor.' });
+    res.status(500).json({
+      success: false,
+      message: 'Ocurrió un error en el servidor al verificar el código.'
+    });
+  }
+};
+
+/**
+ * Reenviar código OTP 2FA para el administrador
+ */
+export const resendAdminOtp = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+    const cleanEmail = String(email || '').trim().toLowerCase();
+
+    if (!cleanEmail) {
+      res.status(400).json({
+        success: false,
+        message: 'El correo electrónico es requerido.'
+      });
+      return;
+    }
+
+    const user = await User.findOne({
+      where: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanEmail)
+    }) || await User.findOne({ where: { email: cleanEmail } });
+
+    if (!user || user.role !== 'admin') {
+      res.status(401).json({
+        success: false,
+        message: 'No se encontró la cuenta de Administrador.'
+      });
+      return;
+    }
+
+    if (password) {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        res.status(401).json({
+          success: false,
+          message: 'Contraseña incorrecta.'
+        });
+        return;
+      }
+    }
+
+    // Generar nuevo código OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    await user.update({ otp_code: otpCode, otp_expires: otpExpires });
+
+    // Enviar nuevo correo
+    emailService.sendAdminOtpEmail({
+      to: user.email,
+      userName: user.name,
+      otpCode
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Hemos enviado un nuevo código de verificación a ${user.email}.`
+    });
+  } catch (error: any) {
+    console.error('Error al reenviar OTP 2FA:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error en el servidor al reenviar el código.'
+    });
   }
 };
 

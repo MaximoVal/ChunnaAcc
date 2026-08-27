@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert, Spinner, Nav, Row, Col } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import BrandLogo from './BrandLogo';
@@ -10,6 +10,8 @@ export const AuthModal: React.FC = () => {
     authModalMode,
     setAuthModalMode,
     login,
+    verifyAdmin,
+    resendAdminOtp,
     register
   } = useAuth();
 
@@ -19,6 +21,8 @@ export const AuthModal: React.FC = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [is2FAPending, setIs2FAPending] = useState(false);
+  const [resendingOtp, setResendingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -37,6 +41,15 @@ export const AuthModal: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Contador regresivo para reenvío de OTP
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
   const resetFormState = () => {
     setErrorMsg(null);
     setValidationErrors([]);
@@ -45,6 +58,8 @@ export const AuthModal: React.FC = () => {
     setShowLoginPassword(false);
     setOtpCode('');
     setIs2FAPending(false);
+    setResendingOtp(false);
+    setResendCooldown(0);
     setRegPassword('');
     setShowRegPassword(false);
     setRegConfirmPassword('');
@@ -61,26 +76,51 @@ export const AuthModal: React.FC = () => {
     setAuthModalMode(mode);
   };
 
-  const { verifyAdmin } = useAuth();
+  const handleCancel2FA = () => {
+    setIs2FAPending(false);
+    setOtpCode('');
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  };
 
-  // Manejo de Login
+  // Manejo de Reenvío de Código OTP
+  const handleResendOtp = async () => {
+    if (resendingOtp || resendCooldown > 0) return;
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setResendingOtp(true);
+
+    const result = await resendAdminOtp(loginEmail, loginPassword);
+    setResendingOtp(false);
+
+    if (result.success) {
+      setSuccessMsg(result.message || 'Código reenviado con éxito. Revisa tu correo.');
+      setResendCooldown(30);
+    } else {
+      setErrorMsg(result.message || 'No se pudo reenviar el código.');
+    }
+  };
+
+  // Manejo de Login y Verificación 2FA
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setValidationErrors([]);
     setSuccessMsg(null);
 
+    // Paso 2: Verificación de código 2FA
     if (is2FAPending) {
-      if (!otpCode.trim()) {
-        setErrorMsg('Por favor ingresa el código de verificación.');
+      const cleanOtp = otpCode.replace(/\D/g, '').trim();
+      if (!cleanOtp || cleanOtp.length !== 6) {
+        setErrorMsg('Por favor ingresa el código de verificación de 6 dígitos.');
         return;
       }
       setLoading(true);
-      const result = await verifyAdmin(loginEmail, loginPassword, otpCode);
+      const result = await verifyAdmin(loginEmail, loginPassword, cleanOtp);
       setLoading(false);
 
       if (result.success) {
-        setSuccessMsg(result.message || 'Verificación exitosa.');
+        setSuccessMsg(result.message || 'Verificación exitosa. ¡Bienvenido!');
         setTimeout(() => handleClose(), 1000);
       } else {
         setErrorMsg(result.message || 'Código inválido.');
@@ -88,6 +128,7 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
+    // Paso 1: Ingreso de credenciales
     if (!loginEmail.trim() || !loginPassword.trim()) {
       setErrorMsg('Por favor completa todos los campos requeridos.');
       return;
@@ -98,8 +139,9 @@ export const AuthModal: React.FC = () => {
     setLoading(false);
 
     if (result.requires2FA) {
-      setSuccessMsg(result.message || 'Se ha enviado un código a tu correo.');
+      setSuccessMsg(result.message || 'Se ha generado tu código de seguridad.');
       setIs2FAPending(true);
+      setResendCooldown(30); // 30s de enfriamiento para reenvío
     } else if (result.success) {
       setSuccessMsg(result.message || 'Inicio de sesión exitoso.');
       setTimeout(() => handleClose(), 1000);
@@ -116,7 +158,6 @@ export const AuthModal: React.FC = () => {
     e.preventDefault();
     resetFormState();
 
-    // Validaciones del cliente
     if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) {
       setErrorMsg('El nombre, correo y contraseña son obligatorios.');
       return;
@@ -178,33 +219,37 @@ export const AuthModal: React.FC = () => {
             <p className="text-muted small mb-0 fw-normal">
               {isRegister
                 ? 'Regístrate para comprar y hacer seguimiento de tus pedidos'
+                : is2FAPending
+                ? 'Verificación de Seguridad en 2 Pasos'
                 : 'Accede a tu cuenta y gestiona tus pedidos'}
             </p>
           </Modal.Title>
         </Modal.Header>
 
         <Modal.Body className="px-4 py-4">
-          {/* Navegación por pestañas */}
-          <Nav variant="pills" className="auth-nav-tabs mb-4 justify-content-center mx-auto" style={{ maxWidth: '340px' }}>
-            <Nav.Item>
-              <Nav.Link
-                active={!isRegister}
-                onClick={() => handleSwitchMode('login')}
-                className="auth-tab-link"
-              >
-                Iniciar Sesión
-              </Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link
-                active={isRegister}
-                onClick={() => handleSwitchMode('register')}
-                className="auth-tab-link"
-              >
-                Crear Cuenta
-              </Nav.Link>
-            </Nav.Item>
-          </Nav>
+          {/* Navegación por pestañas (solo visible si no estamos en paso 2FA) */}
+          {!is2FAPending && (
+            <Nav variant="pills" className="auth-nav-tabs mb-4 justify-content-center mx-auto" style={{ maxWidth: '340px' }}>
+              <Nav.Item>
+                <Nav.Link
+                  active={!isRegister}
+                  onClick={() => handleSwitchMode('login')}
+                  className="auth-tab-link"
+                >
+                  Iniciar Sesión
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link
+                  active={isRegister}
+                  onClick={() => handleSwitchMode('register')}
+                  className="auth-tab-link"
+                >
+                  Crear Cuenta
+                </Nav.Link>
+              </Nav.Item>
+            </Nav>
+          )}
 
           {/* Mensajes de Alerta / Errores */}
           {errorMsg && (
@@ -234,71 +279,117 @@ export const AuthModal: React.FC = () => {
           {!isRegister ? (
             <div style={{ maxWidth: '420px', margin: '0 auto' }}>
               <Form onSubmit={handleLoginSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="auth-label">Correo Electrónico *</Form.Label>
-                  <Form.Control
-                    type="email"
-                    placeholder="ejemplo@correo.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    className="form-control-custom"
-                    required
-                    disabled={is2FAPending}
-                    autoFocus
-                  />
-                </Form.Group>
+                {!is2FAPending ? (
+                  <>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="auth-label">Correo Electrónico *</Form.Label>
+                      <Form.Control
+                        type="email"
+                        placeholder="ejemplo@correo.com"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        className="form-control-custom"
+                        required
+                        autoFocus
+                      />
+                    </Form.Group>
 
-                <Form.Group className="mb-4">
-                  <Form.Label className="auth-label">Contraseña *</Form.Label>
-                  <div className="password-input-wrapper">
-                    <Form.Control
-                      type={showLoginPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      className="form-control-custom"
-                      disabled={is2FAPending}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="btn-password-toggle"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      title={showLoginPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                      tabIndex={-1}
-                    >
-                      {showLoginPassword ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
-                    </button>
+                    <Form.Group className="mb-4">
+                      <Form.Label className="auth-label">Contraseña *</Form.Label>
+                      <div className="password-input-wrapper">
+                        <Form.Control
+                          type={showLoginPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          className="form-control-custom"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn-password-toggle"
+                          onClick={() => setShowLoginPassword(!showLoginPassword)}
+                          title={showLoginPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                          tabIndex={-1}
+                        >
+                          {showLoginPassword ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </Form.Group>
+                  </>
+                ) : (
+                  /* Panel de 2FA con Código OTP */
+                  <div className="text-center mb-4">
+                    <div className="p-3 bg-light rounded-3 mb-3 border text-start">
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <span className="badge bg-danger text-white">2FA Admin</span>
+                        <strong className="small text-dark">{loginEmail}</strong>
+                      </div>
+                      <p className="text-muted small mb-0">
+                        Ingresa el código de 6 dígitos que enviamos a tu correo electrónico.
+                      </p>
+                    </div>
+
+                    <Form.Group className="mb-3">
+                      <Form.Label className="auth-label fw-bold text-dark d-block text-center mb-2">
+                        Código de Verificación (6 dígitos)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        placeholder="000000"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="form-control-custom text-center fw-bold fs-2 letter-spacing-3 py-2"
+                        style={{ letterSpacing: '8px', fontFamily: 'monospace' }}
+                        required
+                        autoFocus
+                        autoComplete="one-time-code"
+                      />
+                    </Form.Group>
+
+                    {/* Botón para Reenviar Código */}
+                    <div className="d-flex justify-content-between align-items-center pt-1 mb-2">
+                      <button
+                        type="button"
+                        className="btn btn-link text-decoration-none p-0 small text-muted"
+                        onClick={handleCancel2FA}
+                        disabled={loading}
+                      >
+                        ← Volver
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-link text-decoration-none p-0 small text-primary"
+                        onClick={handleResendOtp}
+                        disabled={resendingOtp || resendCooldown > 0 || loading}
+                      >
+                        {resendingOtp ? (
+                          <span className="d-flex align-items-center gap-1">
+                            <Spinner size="sm" animation="border" />
+                            <span>Reenviando...</span>
+                          </span>
+                        ) : resendCooldown > 0 ? (
+                          `Reenviar en ${resendCooldown}s`
+                        ) : (
+                          '🔄 Reenviar código'
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </Form.Group>
-
-                {is2FAPending && (
-                  <Form.Group className="mb-4">
-                    <Form.Label className="auth-label text-warning-emphasis">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1 mb-1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                      Código de Verificación *
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Ej: 123456"
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      className="form-control-custom text-center fs-4 letter-spacing-2"
-                      required
-                      autoFocus
-                    />
-                    <Form.Text className="text-muted">Revisa la bandeja de entrada de {loginEmail}</Form.Text>
-                  </Form.Group>
                 )}
 
                 <Button
@@ -309,27 +400,29 @@ export const AuthModal: React.FC = () => {
                   {loading ? (
                     <>
                       <Spinner size="sm" animation="border" />
-                      <span>{is2FAPending ? 'Verificando código...' : 'Verificando credenciales...'}</span>
+                      <span>{is2FAPending ? 'Verificando código...' : 'Iniciando sesión...'}</span>
                     </>
                   ) : (
-                    is2FAPending ? 'Verificar y Entrar' : 'Ingresar a mi Cuenta'
+                    is2FAPending ? 'Verificar y Entrar como Administrador' : 'Ingresar a mi Cuenta'
                   )}
                 </Button>
 
-                <div className="text-center mt-3 pt-2">
-                  <span className="text-muted small">¿Aún no tienes cuenta? </span>
-                  <button
-                    type="button"
-                    className="btn btn-link p-0 small auth-link-btn"
-                    onClick={() => handleSwitchMode('register')}
-                  >
-                    Regístrate aquí
-                  </button>
-                </div>
+                {!is2FAPending && (
+                  <div className="text-center mt-3 pt-2">
+                    <span className="text-muted small">¿Aún no tienes cuenta? </span>
+                    <button
+                      type="button"
+                      className="btn btn-link p-0 small auth-link-btn"
+                      onClick={() => handleSwitchMode('register')}
+                    >
+                      Regístrate aquí
+                    </button>
+                  </div>
+                )}
               </Form>
             </div>
           ) : (
-            /* Formulario de Registro Espacioso y Organizado */
+            /* Formulario de Registro */
             <Form onSubmit={handleRegisterSubmit}>
               <Row className="g-4 mb-3">
                 {/* Columna Izquierda: Datos de Acceso */}
@@ -423,7 +516,7 @@ export const AuthModal: React.FC = () => {
                             </svg>
                           ) : (
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
                               <circle cx="12" cy="12" r="3" />
                             </svg>
                           )}

@@ -44,10 +44,12 @@ services:
         value: chunna_meta_webhook_token_2026
       - key: PAGE_ACCESS_TOKEN
         sync: false
-      # Configuración de Correo Electrónico (2FA para Administrador con Gmail)
+      # Configuración de Correo Electrónico (2FA para Administrador)
+      # Método A: Gmail SMTP (Requiere Contraseña de Aplicación de 16 letras)
       - key: EMAIL_USER
         value: cunna.accs@gmail.com
       - key: EMAIL_PASS
         sync: false
-
-
+      # Método B (Alternativa Ultra-Confiable HTTP REST en Render): Resend API
+      - key: RESEND_API_KEY
+        sync: false

@@ -40,6 +40,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; requires2FA?: boolean; message?: string; errors?: string[] }>;
   verifyAdmin: (email: string, password: string, otpCode: string) => Promise<{ success: boolean; message?: string; errors?: string[] }>;
+  resendAdminOtp: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string; errors?: string[] }>;
   updateProfile: (data: UpdateProfileData) => Promise<{ success: boolean; message?: string; errors?: string[] }>;
   logout: () => void;
@@ -55,7 +56,6 @@ interface AuthContextType {
   productsRefreshTrigger: number;
   triggerProductsRefresh: () => void;
 }
-
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -115,10 +115,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string) => {
     try {
+      const cleanEmail = email.trim().toLowerCase();
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: cleanEmail, password })
       });
 
       const data = await response.json();
@@ -158,10 +159,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const verifyAdmin = async (email: string, password: string, otpCode: string) => {
     try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanOtp = (otpCode || '').replace(/\D/g, '').trim();
+
       const response = await fetch(`${API_BASE_URL}/auth/verify-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, otp_code: otpCode })
+        body: JSON.stringify({ email: cleanEmail, password, otp_code: cleanOtp })
       });
 
       const data = await response.json();
@@ -169,7 +173,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!response.ok) {
         return {
           success: false,
-          message: data.message || 'Error al verificar token',
+          message: data.message || 'Error al verificar el código.',
           errors: data.errors || []
         };
       }
@@ -186,17 +190,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
       return {
         success: false,
-        message: 'No se pudo conectar con el servidor.'
+        message: 'No se pudo conectar con el servidor al verificar el código.'
+      };
+    }
+  };
+
+  const resendAdminOtp = async (email: string, password: string) => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const response = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Error al reenviar el código de verificación.'
+        };
+      }
+
+      return {
+        success: true,
+        message: data.message || 'Se ha enviado un nuevo código a tu correo.'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: 'Error de conexión al intentar reenviar el código.'
       };
     }
   };
 
   const register = async (data: RegisterData) => {
     try {
+      const cleanData = {
+        ...data,
+        email: data.email.trim().toLowerCase(),
+        name: data.name.trim()
+      };
+
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(cleanData)
       });
 
       const resData = await response.json();
@@ -301,6 +341,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading,
         login,
         verifyAdmin,
+        resendAdminOtp,
         register,
         updateProfile,
         logout,
