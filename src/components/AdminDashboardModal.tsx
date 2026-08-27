@@ -69,7 +69,6 @@ export interface BulkAIProductItem {
   stock: number | string;
 }
 
-
 export const AdminDashboardModal: React.FC = () => {
   const {
     token,
@@ -856,250 +855,251 @@ export const AdminDashboardModal: React.FC = () => {
         scrollable
         className="custom-admin-modal"
       >
-        <div className="admin-modal-wrapper">
-          <Modal.Header closeButton className="admin-modal-header px-4 py-3 border-0">
-            <div className="d-flex align-items-center gap-3">
-              <div className="admin-badge-icon d-flex align-items-center justify-content-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"></path><path d="M3 20h18"></path></svg>
-              </div>
-              <div>
-                <Modal.Title className="admin-modal-title">Panel de Administración</Modal.Title>
-                <span className="text-muted small">
-                  Gestión de ventas, clientes, pedidos y catálogo de Chunna Accesorios
-                </span>
-              </div>
+        <Modal.Header closeButton className="admin-modal-header px-3 px-md-4 py-3 border-0">
+          <div className="d-flex align-items-center gap-2 gap-md-3">
+            <div className="admin-badge-icon d-flex align-items-center justify-content-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"></path><path d="M3 20h18"></path></svg>
             </div>
-          </Modal.Header>
+            <div>
+              <Modal.Title className="admin-modal-title">Panel de Administración</Modal.Title>
+              <span className="text-muted small d-none d-sm-inline">
+                Chunna Accesorios — Gestión integral
+              </span>
+            </div>
+          </div>
+        </Modal.Header>
 
-          <Modal.Body className="px-4 py-3 bg-light">
-            {/* Navegación por pestañas del panel */}
-            <Nav variant="pills" className="admin-nav-tabs mb-4">
-              <Nav.Item>
-                <Nav.Link
-                  active={activeTab === 'stats'}
-                  onClick={() => setActiveTab('stats')}
-                  className="admin-tab-link"
-                >
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                    Estadísticas
-                  </span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link
-                  active={activeTab === 'orders'}
-                  onClick={() => setActiveTab('orders')}
-                  className="admin-tab-link"
-                >
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17 12 22.08"></polygon><polygon points="12 12 21 6.92 21 17 12 22.08"></polygon><polygon points="12 1.92 21 6.92 12 12 3 6.92 12 1.92"></polygon></svg>
-                    Pedidos {orders.length > 0 && <Badge bg="danger" pill className="ms-1">{orders.length}</Badge>}
-                  </span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link
-                  active={activeTab === 'users'}
-                  onClick={() => setActiveTab('users')}
-                  className="admin-tab-link"
-                >
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    Clientes ({users.length})
-                  </span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link
-                  active={activeTab === 'products'}
-                  onClick={() => setActiveTab('products')}
-                  className="admin-tab-link"
-                >
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-                    Catálogo ({products.length})
-                  </span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link
-                  active={activeTab === 'addProduct'}
-                  onClick={() => setActiveTab('addProduct')}
-                  className="admin-tab-link"
-                >
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="me-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    Cargar Producto
-                  </span>
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link
-                  active={activeTab === 'bulkAi'}
-                  onClick={() => setActiveTab('bulkAi')}
-                  className="admin-tab-link"
-                  style={{
-                    background: activeTab === 'bulkAi' ? 'linear-gradient(135deg, #7b2cbf, #9d4edd)' : undefined,
-                    color: activeTab === 'bulkAi' ? '#ffffff' : undefined,
-                    borderColor: activeTab === 'bulkAi' ? '#7b2cbf' : undefined
-                  }}
-                >
-                  <span className="d-inline-flex align-items-center gap-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span>⚡ Carga Masiva IA</span>
-                    {bulkQueue.length > 0 && (
-                      <Badge bg={activeTab === 'bulkAi' ? 'light' : 'primary'} text={activeTab === 'bulkAi' ? 'dark' : 'white'} pill className="ms-1">
-                        {bulkQueue.length}
-                      </Badge>
-                    )}
-                  </span>
-                </Nav.Link>
-              </Nav.Item>
-            </Nav>
+        <Modal.Body className="px-2 px-md-4 py-3 bg-light">
+          {/* Navegación por pestañas del panel */}
+          <Nav variant="pills" className="admin-nav-tabs mb-3 mb-md-4">
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'stats'}
+                onClick={() => setActiveTab('stats')}
+                className="admin-tab-link"
+              >
+                <span className="d-inline-flex align-items-center gap-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                  Estadísticas
+                </span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'orders'}
+                onClick={() => setActiveTab('orders')}
+                className="admin-tab-link"
+              >
+                <span className="d-inline-flex align-items-center gap-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17 12 22.08"></polygon><polygon points="12 12 21 6.92 21 17 12 22.08"></polygon><polygon points="12 1.92 21 6.92 12 12 3 6.92 12 1.92"></polygon></svg>
+                  Pedidos {orders.length > 0 && <Badge bg="danger" pill className="ms-1">{orders.length}</Badge>}
+                </span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'users'}
+                onClick={() => setActiveTab('users')}
+                className="admin-tab-link"
+              >
+                <span className="d-inline-flex align-items-center gap-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  Clientes ({users.length})
+                </span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'products'}
+                onClick={() => setActiveTab('products')}
+                className="admin-tab-link"
+              >
+                <span className="d-inline-flex align-items-center gap-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                  Catálogo ({products.length})
+                </span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'addProduct'}
+                onClick={() => setActiveTab('addProduct')}
+                className="admin-tab-link"
+              >
+                <span className="d-inline-flex align-items-center gap-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="me-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  Cargar Producto
+                </span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'bulkAi'}
+                onClick={() => setActiveTab('bulkAi')}
+                className="admin-tab-link"
+                style={{
+                  background: activeTab === 'bulkAi' ? 'linear-gradient(135deg, #7b2cbf, #9d4edd)' : undefined,
+                  color: activeTab === 'bulkAi' ? '#ffffff' : undefined,
+                  borderColor: activeTab === 'bulkAi' ? '#7b2cbf' : undefined
+                }}
+              >
+                <span className="d-inline-flex align-items-center gap-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  <span>⚡ Carga Masiva IA</span>
+                  {bulkQueue.length > 0 && (
+                    <Badge bg={activeTab === 'bulkAi' ? 'light' : 'primary'} text={activeTab === 'bulkAi' ? 'dark' : 'white'} pill className="ms-1">
+                      {bulkQueue.length}
+                    </Badge>
+                  )}
+                </span>
+              </Nav.Link>
+            </Nav.Item>
+          </Nav>
 
-            {/* Mensajes globales */}
-            {errorMsg && (
-              <Alert variant="danger" dismissible onClose={() => setErrorMsg(null)} className="py-2 mb-3">
-                {errorMsg}
-              </Alert>
-            )}
+          {/* Mensajes globales */}
+          {errorMsg && (
+            <Alert variant="danger" dismissible onClose={() => setErrorMsg(null)} className="py-2 mb-3">
+              {errorMsg}
+            </Alert>
+          )}
 
-            {successMsg && (
-              <Alert variant="success" dismissible onClose={() => setSuccessMsg(null)} className="py-2 mb-3">
-                {successMsg}
-              </Alert>
-            )}
+          {successMsg && (
+            <Alert variant="success" dismissible onClose={() => setSuccessMsg(null)} className="py-2 mb-3">
+              {successMsg}
+            </Alert>
+          )}
 
-            {loading ? (
-              <div className="text-center py-5">
-                <Spinner animation="border" variant="danger" />
-                <p className="mt-2 text-muted">Cargando datos del servidor...</p>
-              </div>
-            ) : (
-              <>
-                {/* TAB 1: ESTADÍSTICAS */}
-                {activeTab === 'stats' && (
-                  <div>
-                    <Row className="g-3 mb-4">
-                      <Col lg={3} sm={6}>
-                        <Card className="border-0 shadow-sm p-3 admin-stat-card">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div>
-                              <span className="text-muted small text-uppercase fw-bold">Ingresos Totales</span>
-                              <h3 className="mb-0 fw-bold mt-1 text-success">${stats?.totalRevenue || 0}</h3>
-                            </div>
-                            <div className="stat-icon bg-success-subtle text-success p-2 rounded-circle">
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                            </div>
+          {loading ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="danger" />
+              <p className="mt-2 text-muted">Cargando datos del servidor...</p>
+            </div>
+          ) : (
+            <>
+              {/* TAB 1: ESTADÍSTICAS */}
+              {activeTab === 'stats' && (
+                <div>
+                  <Row className="g-3 mb-4">
+                    <Col lg={3} sm={6}>
+                      <Card className="border-0 shadow-sm p-3 admin-stat-card">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <span className="text-muted small text-uppercase fw-bold">Ingresos Totales</span>
+                            <h3 className="mb-0 fw-bold mt-1 text-success">${stats?.totalRevenue || 0}</h3>
                           </div>
-                        </Card>
-                      </Col>
-
-                      <Col lg={3} sm={6}>
-                        <Card className="border-0 shadow-sm p-3 admin-stat-card">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div>
-                              <span className="text-muted small text-uppercase fw-bold">Pedidos Totales</span>
-                              <h3 className="mb-0 fw-bold mt-1" style={{ color: 'var(--color-principal)' }}>{stats?.totalOrders || 0}</h3>
-                            </div>
-                            <div className="stat-icon p-2 rounded-circle" style={{ backgroundColor: 'rgba(117, 34, 15, 0.1)', color: 'var(--color-principal)' }}>
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                            </div>
+                          <div className="stat-icon bg-success-subtle text-success p-2 rounded-circle">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                           </div>
-                        </Card>
-                      </Col>
-
-                      <Col lg={3} sm={6}>
-                        <Card className="border-0 shadow-sm p-3 admin-stat-card">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div>
-                              <span className="text-muted small text-uppercase fw-bold">Clientes Registrados</span>
-                              <h3 className="mb-0 fw-bold mt-1 text-primary">{stats?.totalUsers || 0}</h3>
-                            </div>
-                            <div className="stat-icon bg-primary-subtle text-primary p-2 rounded-circle">
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                            </div>
-                          </div>
-                        </Card>
-                      </Col>
-
-                      <Col lg={3} sm={6}>
-                        <Card className="border-0 shadow-sm p-3 admin-stat-card">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div>
-                              <span className="text-muted small text-uppercase fw-bold">Stock en Catálogo</span>
-                              <h3 className="mb-0 fw-bold mt-1 text-warning">{stats?.totalStock || 0} u.</h3>
-                            </div>
-                            <div className="stat-icon bg-warning-subtle text-warning p-2 rounded-circle">
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                            </div>
-                          </div>
-                        </Card>
-                      </Col>
-                    </Row>
-
-                    <Row className="g-3">
-                      <Col lg={7}>
-                        <Card className="border-0 shadow-sm p-3 h-100">
-                          <h6 className="fw-bold mb-3" style={{ color: 'var(--color-principal)' }}>Resumen de Operaciones</h6>
-                          <div className="d-flex justify-content-between border-bottom py-2">
-                            <span className="text-muted">Pedidos Completados / Entregados:</span>
-                            <span className="fw-bold text-success">{stats?.completedOrders || 0}</span>
-                          </div>
-                          <div className="d-flex justify-content-between border-bottom py-2">
-                            <span className="text-muted">Pedidos Pendientes de Despacho:</span>
-                            <span className="fw-bold text-danger">{stats?.pendingOrders || 0}</span>
-                          </div>
-                          <div className="d-flex justify-content-between border-bottom py-2">
-                            <span className="text-muted">Modelos de Pulseras Activas:</span>
-                            <span className="fw-bold">{stats?.totalProducts || 0} productos</span>
-                          </div>
-                        </Card>
-                      </Col>
-
-                      <Col lg={5}>
-                        <Card className="border-0 shadow-sm p-3 h-100">
-                          <h6 className="fw-bold mb-3 d-flex align-items-center gap-1" style={{ color: 'var(--color-principal)' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                            <span>Sesión de Administración</span>
-                          </h6>
-                          <div className="small text-muted mb-2">
-                            <strong>Cuenta activa:</strong> {user?.email}
-                          </div>
-                          <div className="small text-muted mb-2">
-                            <strong>Base de datos:</strong> MySQL (chunna_db)
-                          </div>
-                          <div className="small text-muted">
-                            <strong>Rol:</strong> Administrador Principal (Acceso total)
-                          </div>
-                        </Card>
-                      </Col>
-                    </Row>
-                  </div>
-                )}
-
-                {/* TAB 2: PEDIDOS */}
-                {activeTab === 'orders' && (
-                  <Card className="border-0 shadow-sm">
-                    <Card.Header className="bg-white py-3">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <h6 className="mb-0 fw-bold" style={{ color: 'var(--color-principal)' }}>
-                          Listado de Pedidos
-                        </h6>
-                        <Button size="sm" variant="outline-secondary" className="d-inline-flex align-items-center gap-1" onClick={fetchAdminData}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                          <span>Actualizar</span>
-                        </Button>
-                      </div>
-                    </Card.Header>
-                    <Card.Body className="p-0">
-                      {orders.length === 0 ? (
-                        <div className="p-4 text-center text-muted">
-                          No hay pedidos registrados aún en la base de datos.
                         </div>
-                      ) : (
-                        <div className="table-responsive">
+                      </Card>
+                    </Col>
+
+                    <Col lg={3} sm={6}>
+                      <Card className="border-0 shadow-sm p-3 admin-stat-card">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <span className="text-muted small text-uppercase fw-bold">Pedidos Totales</span>
+                            <h3 className="mb-0 fw-bold mt-1" style={{ color: 'var(--color-principal)' }}>{stats?.totalOrders || 0}</h3>
+                          </div>
+                          <div className="stat-icon p-2 rounded-circle" style={{ backgroundColor: 'rgba(117, 34, 15, 0.1)', color: 'var(--color-principal)' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                          </div>
+                        </div>
+                      </Card>
+                    </Col>
+
+                    <Col lg={3} sm={6}>
+                      <Card className="border-0 shadow-sm p-3 admin-stat-card">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <span className="text-muted small text-uppercase fw-bold">Clientes Registrados</span>
+                            <h3 className="mb-0 fw-bold mt-1 text-primary">{stats?.totalUsers || 0}</h3>
+                          </div>
+                          <div className="stat-icon bg-primary-subtle text-primary p-2 rounded-circle">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                          </div>
+                        </div>
+                      </Card>
+                    </Col>
+
+                    <Col lg={3} sm={6}>
+                      <Card className="border-0 shadow-sm p-3 admin-stat-card">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <span className="text-muted small text-uppercase fw-bold">Stock en Catálogo</span>
+                            <h3 className="mb-0 fw-bold mt-1 text-warning">{stats?.totalStock || 0} u.</h3>
+                          </div>
+                          <div className="stat-icon bg-warning-subtle text-warning p-2 rounded-circle">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                          </div>
+                        </div>
+                      </Card>
+                    </Col>
+                  </Row>
+
+                  <Row className="g-3">
+                    <Col lg={7}>
+                      <Card className="border-0 shadow-sm p-3 h-100">
+                        <h6 className="fw-bold mb-3" style={{ color: 'var(--color-principal)' }}>Resumen de Operaciones</h6>
+                        <div className="d-flex justify-content-between border-bottom py-2">
+                          <span className="text-muted">Pedidos Completados / Entregados:</span>
+                          <span className="fw-bold text-success">{stats?.completedOrders || 0}</span>
+                        </div>
+                        <div className="d-flex justify-content-between border-bottom py-2">
+                          <span className="text-muted">Pedidos Pendientes de Despacho:</span>
+                          <span className="fw-bold text-danger">{stats?.pendingOrders || 0}</span>
+                        </div>
+                        <div className="d-flex justify-content-between border-bottom py-2">
+                          <span className="text-muted">Modelos de Pulseras Activas:</span>
+                          <span className="fw-bold">{stats?.totalProducts || 0} productos</span>
+                        </div>
+                      </Card>
+                    </Col>
+
+                    <Col lg={5}>
+                      <Card className="border-0 shadow-sm p-3 h-100">
+                        <h6 className="fw-bold mb-3 d-flex align-items-center gap-1" style={{ color: 'var(--color-principal)' }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                          <span>Sesión de Administración</span>
+                        </h6>
+                        <div className="small text-muted mb-2">
+                          <strong>Cuenta activa:</strong> {user?.email}
+                        </div>
+                        <div className="small text-muted mb-2">
+                          <strong>Base de datos:</strong> MySQL (chunna_db)
+                        </div>
+                        <div className="small text-muted">
+                          <strong>Rol:</strong> Administrador Principal (Acceso total)
+                        </div>
+                      </Card>
+                    </Col>
+                  </Row>
+                </div>
+              )}
+
+              {/* TAB 2: PEDIDOS */}
+              {activeTab === 'orders' && (
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-white py-3">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h6 className="mb-0 fw-bold" style={{ color: 'var(--color-principal)' }}>
+                        Listado de Pedidos ({orders.length})
+                      </h6>
+                      <Button size="sm" variant="outline-secondary" className="d-inline-flex align-items-center gap-1" onClick={fetchAdminData}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        <span>Actualizar</span>
+                      </Button>
+                    </div>
+                  </Card.Header>
+                  <Card.Body className="p-0">
+                    {orders.length === 0 ? (
+                      <div className="p-4 text-center text-muted">
+                        No hay pedidos registrados aún en la base de datos.
+                      </div>
+                    ) : (
+                      <>
+                        {/* Vista de Tabla para Escritorio */}
+                        <div className="d-none d-md-block table-responsive">
                           <Table hover className="align-middle mb-0">
                             <thead className="table-light">
                               <tr>
@@ -1154,46 +1154,90 @@ export const AdminDashboardModal: React.FC = () => {
                             </tbody>
                           </Table>
                         </div>
-                      )}
-                    </Card.Body>
-                  </Card>
-                )}
 
-                {/* TAB 3: CLIENTES / COMPRADORES */}
-                {activeTab === 'users' && (
-                  <Card className="border-0 shadow-sm">
-                    <Card.Header className="bg-white py-3">
-                      <Row className="g-2 align-items-center">
-                        <Col md={6}>
-                          <h6 className="mb-0 fw-bold" style={{ color: 'var(--color-principal)' }}>
-                            Gestión de Clientes y Usuarios ({filteredUsers.length})
-                          </h6>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Control
-                            type="search"
-                            placeholder="Buscar por nombre, email, ciudad o teléfono..."
-                            size="sm"
-                            value={userSearchTerm}
-                            onChange={(e) => setUserSearchTerm(e.target.value)}
-                          />
-                        </Col>
-                      </Row>
-                    </Card.Header>
-                    <Card.Body className="p-0">
-                      {filteredUsers.length === 0 ? (
-                        <div className="p-4 text-center text-muted">
-                          No se encontraron clientes registrados con ese criterio.
+                        {/* Vista de Tarjetas Responsivas para Móviles */}
+                        <div className="d-block d-md-none p-2">
+                          <div className="d-flex flex-column gap-2">
+                            {orders.map((o) => (
+                              <Card key={o.id} className="border p-3 rounded-3 shadow-none bg-white">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                  <span className="fw-bold text-dark">Pedido #{o.id}</span>
+                                  <span className="fw-bold text-success fs-5">${o.total}</span>
+                                </div>
+                                <div className="small mb-2">
+                                  <strong>Cliente:</strong> {o.user_name || 'Invitado'}{' '}
+                                  <span className="text-muted">({o.user_email})</span>
+                                </div>
+                                <div className="d-flex gap-2 mb-2 flex-wrap">
+                                  <Badge bg="light" text="dark" className="border">{o.metodo_pago}</Badge>
+                                  {o.con_envio ? <Badge bg="info">🚚 Con Envío</Badge> : <Badge bg="secondary">🏪 Retiro</Badge>}
+                                  {getStatusBadge(o.estado)}
+                                </div>
+                                <div className="d-flex align-items-center justify-content-between pt-2 border-top">
+                                  <span className="text-muted small">
+                                    {o.created_at ? new Date(o.created_at).toLocaleDateString() : 'Reciente'}
+                                  </span>
+                                  <Form.Select
+                                    size="sm"
+                                    value={o.estado}
+                                    onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                                    style={{ width: '135px', fontSize: '0.85rem' }}
+                                  >
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="pagado">Pagado</option>
+                                    <option value="preparando">Preparando</option>
+                                    <option value="enviado">Enviado</option>
+                                    <option value="entregado">Entregado</option>
+                                    <option value="cancelado">Cancelado</option>
+                                  </Form.Select>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="table-responsive">
+                      </>
+                    )}
+                  </Card.Body>
+                </Card>
+              )}
+
+              {/* TAB 3: CLIENTES / COMPRADORES */}
+              {activeTab === 'users' && (
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-white py-3">
+                    <Row className="g-2 align-items-center">
+                      <Col md={6}>
+                        <h6 className="mb-0 fw-bold" style={{ color: 'var(--color-principal)' }}>
+                          Gestión de Clientes ({filteredUsers.length})
+                        </h6>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Control
+                          type="search"
+                          placeholder="Buscar por nombre, email o ciudad..."
+                          size="sm"
+                          value={userSearchTerm}
+                          onChange={(e) => setUserSearchTerm(e.target.value)}
+                        />
+                      </Col>
+                    </Row>
+                  </Card.Header>
+                  <Card.Body className="p-0">
+                    {filteredUsers.length === 0 ? (
+                      <div className="p-4 text-center text-muted">
+                        No se encontraron clientes registrados con ese criterio.
+                      </div>
+                    ) : (
+                      <>
+                        {/* Vista de Tabla para Escritorio */}
+                        <div className="d-none d-md-block table-responsive">
                           <Table hover className="align-middle mb-0">
                             <thead className="table-light">
                               <tr>
                                 <th>Nombre</th>
                                 <th>Contacto</th>
                                 <th>Ubicación / Dirección</th>
-                                <th>Notas de Comprador</th>
+                                <th>Notas</th>
                                 <th>Rol</th>
                                 <th>Registro</th>
                                 <th className="text-end">Acciones</th>
@@ -1276,49 +1320,124 @@ export const AdminDashboardModal: React.FC = () => {
                             </tbody>
                           </Table>
                         </div>
-                      )}
-                    </Card.Body>
-                  </Card>
-                )}
 
-                {/* TAB 4: CATÁLOGO DE PRODUCTOS (LISTADO, EDICIÓN Y ELIMINACIÓN) */}
-                {activeTab === 'products' && (
-                  <Card className="border-0 shadow-sm">
-                    <Card.Header className="bg-white py-3">
-                      <Row className="g-2 align-items-center">
-                        <Col md={4}>
-                          <h6 className="mb-0 fw-bold" style={{ color: 'var(--color-principal)' }}>
-                            Catálogo de Productos ({filteredProducts.length})
-                          </h6>
-                        </Col>
-                        <Col md={5}>
-                          <Form.Control
-                            type="search"
-                            placeholder="Buscar por nombre, categoría o descripción..."
-                            size="sm"
-                            value={productSearchTerm}
-                            onChange={(e) => setProductSearchTerm(e.target.value)}
-                          />
-                        </Col>
-                        <Col md={3} className="text-end">
-                          <Button
-                            size="sm"
-                            className="btn-custom-primary d-inline-flex align-items-center gap-1"
-                            onClick={() => setActiveTab('addProduct')}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            <span>Nuevo Producto</span>
-                          </Button>
-                        </Col>
-                      </Row>
-                    </Card.Header>
-                    <Card.Body className="p-0">
-                      {filteredProducts.length === 0 ? (
-                        <div className="p-4 text-center text-muted">
-                          No se encontraron productos con ese criterio de búsqueda.
+                        {/* Vista de Tarjetas Responsivas para Móviles */}
+                        <div className="d-block d-md-none p-2">
+                          <div className="d-flex flex-column gap-2">
+                            {filteredUsers.map((u) => (
+                              <Card key={u.id} className="border p-3 rounded-3 shadow-none bg-white">
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                  <div className="d-flex align-items-center gap-2">
+                                    <span className="navbar-user-avatar" style={{ width: '32px', height: '32px', fontSize: '0.85rem' }}>
+                                      {u.name?.charAt(0).toUpperCase()}
+                                    </span>
+                                    <div>
+                                      <div className="fw-bold">{u.name}</div>
+                                      <div className="text-muted small">{u.email}</div>
+                                    </div>
+                                  </div>
+                                  <Badge bg={u.role === 'admin' ? 'danger' : 'primary'}>
+                                    {u.role?.toUpperCase()}
+                                  </Badge>
+                                </div>
+
+                                <div className="small mb-2 text-muted">
+                                  {u.city && <span className="me-2">📍 {u.city}</span>}
+                                  {u.address && <span>🏠 {u.address}</span>}
+                                </div>
+
+                                {u.notes && (
+                                  <div className="small bg-light p-2 rounded mb-2 text-muted fst-italic">
+                                    "{u.notes}"
+                                  </div>
+                                )}
+
+                                <div className="d-flex justify-content-between align-items-center pt-2 border-top mt-1">
+                                  <div>
+                                    {u.phone && (
+                                      <a
+                                        href={`https://wa.me/${u.phone.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn btn-outline-success btn-sm py-1 px-2 small d-inline-flex align-items-center gap-1"
+                                      >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                        <span>WhatsApp</span>
+                                      </a>
+                                    )}
+                                  </div>
+
+                                  <div className="d-flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline-primary"
+                                      onClick={() => handleOpenEditUser(u)}
+                                      className="py-1 px-2"
+                                    >
+                                      Editar
+                                    </Button>
+                                    {u.role !== 'admin' && u.email !== 'cunna.accs@gmail.com' && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline-danger"
+                                        onClick={() => handleDeleteUser(u.id, u.name, u.email)}
+                                        className="py-1 px-2"
+                                      >
+                                        Eliminar
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="table-responsive">
+                      </>
+                    )}
+                  </Card.Body>
+                </Card>
+              )}
+
+              {/* TAB 4: CATÁLOGO DE PRODUCTOS (LISTADO, EDICIÓN Y ELIMINACIÓN) */}
+              {activeTab === 'products' && (
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-white py-3">
+                    <Row className="g-2 align-items-center">
+                      <Col xs={12} md={4}>
+                        <h6 className="mb-0 fw-bold" style={{ color: 'var(--color-principal)' }}>
+                          Catálogo de Productos ({filteredProducts.length})
+                        </h6>
+                      </Col>
+                      <Col xs={7} md={5}>
+                        <Form.Control
+                          type="search"
+                          placeholder="Buscar producto o categoría..."
+                          size="sm"
+                          value={productSearchTerm}
+                          onChange={(e) => setProductSearchTerm(e.target.value)}
+                        />
+                      </Col>
+                      <Col xs={5} md={3} className="text-end">
+                        <Button
+                          size="sm"
+                          className="btn-custom-primary w-100 d-inline-flex align-items-center justify-content-center gap-1"
+                          onClick={() => setActiveTab('addProduct')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          <span>+ Nuevo</span>
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Card.Header>
+                  <Card.Body className="p-0">
+                    {filteredProducts.length === 0 ? (
+                      <div className="p-4 text-center text-muted">
+                        No se encontraron productos con ese criterio de búsqueda.
+                      </div>
+                    ) : (
+                      <>
+                        {/* Vista de Tabla para Escritorio */}
+                        <div className="d-none d-md-block table-responsive">
                           <Table hover className="align-middle mb-0">
                             <thead className="table-light">
                               <tr>
@@ -1395,400 +1514,460 @@ export const AdminDashboardModal: React.FC = () => {
                             </tbody>
                           </Table>
                         </div>
-                      )}
-                    </Card.Body>
-                  </Card>
-                )}
 
-                {/* TAB 5: CARGAR PRODUCTO INDIVIDUAL */}
-                {activeTab === 'addProduct' && (
-                  <Row className="g-4">
-                    <Col lg={7}>
-                      <Card className="border-0 shadow-sm p-4 bg-white rounded-3">
-                        <h6 className="fw-bold mb-3" style={{ color: 'var(--color-principal)' }}>Información del Producto</h6>
-                        <Form onSubmit={handleCreateProduct}>
-                          <Form.Group className="mb-3">
-                            <Form.Label className="auth-label">Nombre del Producto</Form.Label>
-                            <Form.Control
-                              type="text"
-                              placeholder="Ej: Pulsera Macramé Ojo de Tigre"
-                              value={prodNombre}
-                              onChange={(e) => setProdNombre(e.target.value)}
-                              className="form-control-custom"
-                              required
-                            />
-                          </Form.Group>
-
-                          <Row className="g-3 mb-3">
-                            <Col md={6}>
-                              <Form.Label className="auth-label">Precio ($ ARS)</Form.Label>
-                              <Form.Control
-                                type="number"
-                                placeholder="Ej: 1800"
-                                value={prodPrecio}
-                                onChange={(e) => setProdPrecio(e.target.value)}
-                                className="form-control-custom"
-                                required
-                              />
-                            </Col>
-                            <Col md={6}>
-                              <Form.Label className="auth-label">Stock Disponible</Form.Label>
-                              <Form.Control
-                                type="number"
-                                placeholder="Ej: 15"
-                                value={prodStock}
-                                onChange={(e) => setProdStock(e.target.value)}
-                                className="form-control-custom"
-                                required
-                              />
-                            </Col>
-                          </Row>
-
-                          <Form.Group className="mb-3">
-                            <Form.Label className="auth-label">Categoría</Form.Label>
-                            <Form.Select
-                              value={prodCategoria}
-                              onChange={(e) => setProdCategoria(e.target.value)}
-                              className="form-control-custom"
-                            >
-                              <option value="Pulseras">Pulseras</option>
-                              <option value="Collares">Collares</option>
-                              <option value="Aros">Aros</option>
-                              <option value="Tobilleras">Tobilleras</option>
-                              <option value="Anillos">Anillos</option>
-                            </Form.Select>
-                          </Form.Group>
-
-                          <Form.Group className="mb-3">
-                            <Form.Label className="auth-label">Descripción</Form.Label>
-                            <Form.Control
-                              as="textarea"
-                              rows={3}
-                              placeholder="Describe los materiales, el tejido, color y detalles especiales..."
-                              value={prodDescripcion}
-                              onChange={(e) => setProdDescripcion(e.target.value)}
-                              className="form-control-custom"
-                            />
-                          </Form.Group>
-
-                          <div className="text-end mt-4">
-                            <Button
-                              type="submit"
-                              className="btn-custom-primary px-4 py-2"
-                              disabled={savingProduct}
-                            >
-                              {savingProduct ? (
-                                <>
-                                  <Spinner animation="border" size="sm" className="me-2" />
-                                  Guardando Producto...
-                                </>
-                              ) : (
-                                'Guardar en Catálogo'
-                              )}
-                            </Button>
-                          </div>
-                        </Form>
-                      </Card>
-                    </Col>
-
-                    <Col lg={5}>
-                      <Card className="border-0 shadow-sm p-4 bg-white rounded-3 h-100">
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                          <h6 className="fw-bold mb-0" style={{ color: 'var(--color-principal)' }}>Fotografía del Producto</h6>
-                          {imageFile && (
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={handleRemoveImage}
-                              className="py-0 px-2 small"
-                            >
-                              Quitar
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* Drag & Drop Area */}
-                        <div
-                          className={`dropzone-area text-center p-3 mb-3 rounded-3 position-relative ${dragActive ? 'active' : ''}`}
-                          onDragEnter={handleDrag}
-                          onDragLeave={handleDrag}
-                          onDragOver={handleDrag}
-                          onDrop={handleDrop}
-                          onClick={handleDropzoneClick}
-                          style={{
-                            border: '2px dashed #d97757',
-                            backgroundColor: dragActive ? 'rgba(217, 119, 87, 0.1)' : '#fdfaf8',
-                            cursor: 'pointer',
-                            minHeight: '140px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            style={{ display: 'none' }}
-                          />
-
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d97757" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                          <p className="small mb-1 fw-semibold text-dark">
-                            Arrastra una foto aquí o haz clic para explorar
-                          </p>
-                          <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                            Formatos soportados: JPG, PNG, WEBP (hasta 10MB)
-                          </span>
-                        </div>
-
-                        {/* Botón de Autocompletar con IA */}
-                        {imageFile && (
-                          <div className="mb-3">
-                            <Button
-                              variant="primary"
-                              className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
-                              style={{
-                                background: 'linear-gradient(135deg, #7b2cbf 0%, #9d4edd 100%)',
-                                border: 'none',
-                                boxShadow: '0 4px 12px rgba(123, 44, 191, 0.25)'
-                              }}
-                              disabled={analyzingSingleAI}
-                              onClick={handleAutofillWithAI}
-                            >
-                              {analyzingSingleAI ? (
-                                <>
-                                  <Spinner animation="border" size="sm" variant="light" />
-                                  <span>Analizando con IA de Gemini...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                                  <span className="fw-semibold">⚡ Autocompletar datos con Inteligencia Artificial</span>
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Vista previa */}
-                        <div className="text-center mt-auto">
-                          <span className="text-muted small d-block mb-2">Vista previa:</span>
-                          <img
-                            src={getImageUrl(prodImagen)}
-                            alt="Preview"
-                            className="img-fluid rounded-3 shadow-sm"
-                            style={{ maxHeight: '150px', objectFit: 'cover' }}
-                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/im1.jpeg'; }}
-                          />
-                        </div>
-                      </Card>
-                    </Col>
-                  </Row>
-                )}
-
-                {/* TAB 6: CARGA MASIVA CON IA */}
-                {activeTab === 'bulkAi' && (
-                  <div>
-                    {/* Zona Dropzone Masivo */}
-                    <div
-                      className={`bulk-dropzone text-center p-4 mb-4 rounded-4 bg-white shadow-sm position-relative ${bulkDragActive ? 'active' : ''}`}
-                      onDragEnter={handleBulkDrag}
-                      onDragLeave={handleBulkDrag}
-                      onDragOver={handleBulkDrag}
-                      onDrop={handleBulkDrop}
-                      onClick={() => bulkFileInputRef.current?.click()}
-                      style={{
-                        border: '2.5px dashed #9d4edd',
-                        backgroundColor: bulkDragActive ? 'rgba(157, 78, 221, 0.08)' : '#ffffff',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease-in-out'
-                      }}
-                    >
-                      <input
-                        ref={bulkFileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleBulkFileChange}
-                        style={{ display: 'none' }}
-                      />
-
-                      <div className="py-3">
-                        <div className="mb-2">
-                          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#7b2cbf" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        </div>
-                        <h5 className="fw-bold mb-1" style={{ color: '#4a154b' }}>
-                          Arrastra múltiples fotos de productos aquí
-                        </h5>
-                        <p className="text-muted small mb-0">
-                          Puedes seleccionar 5, 10 o 20 fotos a la vez. La Inteligencia Artificial analizará cada una en paralelo para extraer títulos, materiales, precios sugeridos y descripciones.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Barra de Acciones de Cola Masiva */}
-                    {bulkQueue.length > 0 && (
-                      <div className="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded-3 shadow-sm">
-                        <div>
-                          <span className="fw-bold text-dark me-2">Productos en cola:</span>
-                          <Badge bg="primary" pill className="fs-6">{bulkQueue.length}</Badge>
-                        </div>
-
-                        <div className="d-flex gap-2">
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={handleClearBulkQueue}
-                            disabled={savingBulk}
-                          >
-                            Limpiar cola
-                          </Button>
-
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            className="px-4 fw-semibold"
-                            style={{ background: 'linear-gradient(135deg, #7b2cbf, #9d4edd)', border: 'none' }}
-                            onClick={handleSaveBulkProducts}
-                            disabled={savingBulk || bulkQueue.some(i => i.status === 'analyzing')}
-                          >
-                            {savingBulk ? (
-                              <>
-                                <Spinner animation="border" size="sm" className="me-2" />
-                                Guardando lote en BD...
-                              </>
-                            ) : (
-                              `💾 Guardar todos los ${bulkQueue.length} productos en Catálogo`
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Grilla de Productos en Cola */}
-                    {bulkQueue.length > 0 ? (
-                      <div className="bulk-queue-grid">
-                        <Row className="g-3">
-                          {bulkQueue.map((item) => (
-                            <Col lg={4} md={6} key={item.id}>
-                              <Card className="border-0 shadow-sm p-3 h-100 bg-white rounded-3 position-relative">
-                                {/* Estado del análisis de IA */}
-                                <div className="mb-2 d-flex justify-content-between align-items-center">
-                                  <Badge bg={
-                                    item.status === 'done' ? 'success' :
-                                    item.status === 'analyzing' ? 'warning' :
-                                    item.status === 'error' ? 'danger' : 'secondary'
-                                  }>
-                                    {item.status === 'done' && '✓ Analizado con IA'}
-                                    {item.status === 'analyzing' && '⏳ Analizando...'}
-                                    {item.status === 'error' && '⚠️ Error IA'}
-                                    {item.status === 'pending' && 'En espera'}
-                                  </Badge>
-                                </div>
-
-                                <div className="text-center mb-2">
+                        {/* Vista de Tarjetas Responsivas para Móviles (Sin scroll horizontal) */}
+                        <div className="d-block d-md-none p-2">
+                          <div className="d-flex flex-column gap-3">
+                            {filteredProducts.map((p) => (
+                              <Card key={p.id} className="border p-3 rounded-3 shadow-none bg-white">
+                                <div className="d-flex gap-3 align-items-start mb-2">
                                   <img
-                                    src={item.previewUrl}
-                                    alt={item.nombre}
-                                    className="img-fluid rounded-3"
-                                    style={{ height: '140px', width: '100%', objectFit: 'cover' }}
+                                    src={getImageUrl(p.imagen)}
+                                    alt={p.nombre}
+                                    style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '10px' }}
+                                    className="flex-shrink-0 border"
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/im1.jpeg'; }}
                                   />
+                                  <div className="flex-grow-1 min-w-0">
+                                    <div className="fw-bold fs-6 mb-1 text-dark text-truncate">{p.nombre}</div>
+                                    <div className="d-flex gap-1 flex-wrap mb-1">
+                                      <Badge bg="light" text="dark" className="border">{p.categoria || 'Pulseras'}</Badge>
+                                      {Boolean(p.activo) ? (
+                                        <Badge bg="success">Activo</Badge>
+                                      ) : (
+                                        <Badge bg="secondary">Inactivo</Badge>
+                                      )}
+                                      <Badge bg={p.stock <= 0 ? 'danger' : p.stock < 5 ? 'warning' : 'info'} text={p.stock < 5 ? 'dark' : 'white'}>
+                                        Stock: {p.stock}
+                                      </Badge>
+                                    </div>
+                                    <div className="fw-bold text-success fs-5">${p.precio}</div>
+                                  </div>
                                 </div>
 
-                                <Form.Group className="mb-2">
-                                  <Form.Label className="auth-label small mb-1">Nombre / Título</Form.Label>
-                                  <Form.Control
-                                    size="sm"
-                                    type="text"
-                                    value={item.nombre}
-                                    onChange={(e) => handleBulkItemChange(item.id, 'nombre', e.target.value)}
-                                    placeholder="Nombre de la pulsera"
-                                  />
-                                </Form.Group>
+                                {p.descripcion && (
+                                  <div className="small text-muted mb-3 line-clamp-2">
+                                    {p.descripcion}
+                                  </div>
+                                )}
 
-                                <Row className="g-2 mb-2">
-                                  <Col xs={6}>
-                                    <Form.Label className="auth-label small mb-1">Categoría</Form.Label>
-                                    <Form.Select
-                                      size="sm"
-                                      value={item.categoria}
-                                      onChange={(e) => handleBulkItemChange(item.id, 'categoria', e.target.value)}
-                                    >
-                                      <option value="Pulseras">Pulseras</option>
-                                      <option value="Collares">Collares</option>
-                                      <option value="Aros">Aros</option>
-                                      <option value="Tobilleras">Tobilleras</option>
-                                      <option value="Anillos">Anillos</option>
-                                    </Form.Select>
-                                  </Col>
-                                  <Col xs={3}>
-                                    <Form.Label className="auth-label small mb-1">Precio ($)</Form.Label>
-                                    <Form.Control
-                                      size="sm"
-                                      type="number"
-                                      value={item.precio}
-                                      onChange={(e) => handleBulkItemChange(item.id, 'precio', e.target.value)}
-                                    />
-                                  </Col>
-                                  <Col xs={3}>
-                                    <Form.Label className="auth-label small mb-1">Stock</Form.Label>
-                                    <Form.Control
-                                      size="sm"
-                                      type="number"
-                                      value={item.stock}
-                                      onChange={(e) => handleBulkItemChange(item.id, 'stock', e.target.value)}
-                                    />
-                                  </Col>
-                                </Row>
-
-                                <Form.Group className="mb-3">
-                                  <Form.Label className="auth-label small mb-1">Descripción</Form.Label>
-                                  <Form.Control
-                                    as="textarea"
-                                    rows={2}
-                                    size="sm"
-                                    value={item.descripcion}
-                                    onChange={(e) => handleBulkItemChange(item.id, 'descripcion', e.target.value)}
-                                    placeholder="Detalle y materiales..."
-                                  />
-                                </Form.Group>
-
-                                <div className="d-flex justify-content-end mt-auto">
+                                <div className="d-flex gap-2 pt-2 border-top">
                                   <Button
-                                    variant="outline-danger"
                                     size="sm"
-                                    className="w-100"
-                                    onClick={() => handleRemoveBulkItem(item.id)}
+                                    variant="outline-primary"
+                                    className="flex-grow-1 py-2 d-flex align-items-center justify-content-center gap-1"
+                                    onClick={() => handleOpenEditProduct(p)}
                                   >
-                                    Quitar de la cola
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    <span>Modificar</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline-danger"
+                                    className="flex-grow-1 py-2 d-flex align-items-center justify-content-center gap-1"
+                                    onClick={() => handleDeleteProduct(p.id, p.nombre)}
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                    <span>Eliminar</span>
                                   </Button>
                                 </div>
                               </Card>
-                            </Col>
-                          ))}
-                        </Row>
-                      </div>
-                    ) : (
-                      <Card className="border-0 shadow-sm p-4 text-center bg-white rounded-3">
-                        <div className="py-3">
-                          <div className="mb-3 text-muted">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9d4edd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            ))}
                           </div>
-                          <h6 className="fw-bold text-dark mb-1">No hay productos en la cola masiva</h6>
-                          <p className="text-muted small mx-auto" style={{ maxWidth: '480px' }}>
-                            Arrastra varias fotos de tu catálogo arriba para ver la magia de la Inteligencia Artificial analizando y cargando cada accesorio automáticamente.
-                          </p>
                         </div>
-                      </Card>
+                      </>
                     )}
+                  </Card.Body>
+                </Card>
+              )}
+
+              {/* TAB 5: CARGAR PRODUCTO INDIVIDUAL */}
+              {activeTab === 'addProduct' && (
+                <Row className="g-3 g-md-4">
+                  <Col lg={7}>
+                    <Card className="border-0 shadow-sm p-3 p-md-4 bg-white rounded-3">
+                      <h6 className="fw-bold mb-3" style={{ color: 'var(--color-principal)' }}>Información del Producto</h6>
+                      <Form onSubmit={handleCreateProduct}>
+                        <Form.Group className="mb-3">
+                          <Form.Label className="auth-label">Nombre del Producto</Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder="Ej: Pulsera Macramé Ojo de Tigre"
+                            value={prodNombre}
+                            onChange={(e) => setProdNombre(e.target.value)}
+                            className="form-control-custom"
+                            required
+                          />
+                        </Form.Group>
+
+                        <Row className="g-3 mb-3">
+                          <Col md={6}>
+                            <Form.Label className="auth-label">Precio ($ ARS)</Form.Label>
+                            <Form.Control
+                              type="number"
+                              placeholder="Ej: 1800"
+                              value={prodPrecio}
+                              onChange={(e) => setProdPrecio(e.target.value)}
+                              className="form-control-custom"
+                              required
+                            />
+                          </Col>
+                          <Col md={6}>
+                            <Form.Label className="auth-label">Stock Disponible</Form.Label>
+                            <Form.Control
+                              type="number"
+                              placeholder="Ej: 15"
+                              value={prodStock}
+                              onChange={(e) => setProdStock(e.target.value)}
+                              className="form-control-custom"
+                              required
+                            />
+                          </Col>
+                        </Row>
+
+                        <Form.Group className="mb-3">
+                          <Form.Label className="auth-label">Categoría</Form.Label>
+                          <Form.Select
+                            value={prodCategoria}
+                            onChange={(e) => setProdCategoria(e.target.value)}
+                            className="form-control-custom"
+                          >
+                            <option value="Pulseras">Pulseras</option>
+                            <option value="Collares">Collares</option>
+                            <option value="Aros">Aros</option>
+                            <option value="Tobilleras">Tobilleras</option>
+                            <option value="Anillos">Anillos</option>
+                          </Form.Select>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                          <Form.Label className="auth-label">Descripción</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={3}
+                            placeholder="Describe los materiales, el tejido, color y detalles especiales..."
+                            value={prodDescripcion}
+                            onChange={(e) => setProdDescripcion(e.target.value)}
+                            className="form-control-custom"
+                          />
+                        </Form.Group>
+
+                        <div className="text-end mt-4">
+                          <Button
+                            type="submit"
+                            className="btn-custom-primary w-100 w-md-auto px-4 py-2"
+                            disabled={savingProduct}
+                          >
+                            {savingProduct ? (
+                              <>
+                                <Spinner animation="border" size="sm" className="me-2" />
+                                Guardando Producto...
+                              </>
+                            ) : (
+                              'Guardar en Catálogo'
+                            )}
+                          </Button>
+                        </div>
+                      </Form>
+                    </Card>
+                  </Col>
+
+                  <Col lg={5}>
+                    <Card className="border-0 shadow-sm p-3 p-md-4 bg-white rounded-3 h-100">
+                      <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h6 className="fw-bold mb-0" style={{ color: 'var(--color-principal)' }}>Fotografía del Producto</h6>
+                        {imageFile && (
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={handleRemoveImage}
+                            className="py-0 px-2 small"
+                          >
+                            Quitar
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Drag & Drop Area */}
+                      <div
+                        className={`dropzone-area text-center p-3 mb-3 rounded-3 position-relative ${dragActive ? 'active' : ''}`}
+                        onDragEnter={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDragOver={handleDrag}
+                        onDrop={handleDrop}
+                        onClick={handleDropzoneClick}
+                        style={{
+                          border: '2px dashed #d97757',
+                          backgroundColor: dragActive ? 'rgba(217, 119, 87, 0.1)' : '#fdfaf8',
+                          cursor: 'pointer',
+                          minHeight: '130px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          style={{ display: 'none' }}
+                        />
+
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#d97757" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <p className="small mb-1 fw-semibold text-dark">
+                          Toca o arrastra una foto aquí
+                        </p>
+                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          Formatos: JPG, PNG, WEBP (hasta 10MB)
+                        </span>
+                      </div>
+
+                      {/* Botón de Autocompletar con IA */}
+                      {imageFile && (
+                        <div className="mb-3">
+                          <Button
+                            variant="primary"
+                            className="w-100 d-flex align-items-center justify-content-center gap-2 py-2"
+                            style={{
+                              background: 'linear-gradient(135deg, #7b2cbf 0%, #9d4edd 100%)',
+                              border: 'none',
+                              boxShadow: '0 4px 12px rgba(123, 44, 191, 0.25)'
+                            }}
+                            disabled={analyzingSingleAI}
+                            onClick={handleAutofillWithAI}
+                          >
+                            {analyzingSingleAI ? (
+                              <>
+                                <Spinner animation="border" size="sm" variant="light" />
+                                <span>Analizando con Gemini...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                                <span className="fw-semibold">⚡ Autocompletar con IA</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Vista previa */}
+                      <div className="text-center mt-auto">
+                        <span className="text-muted small d-block mb-2">Vista previa:</span>
+                        <img
+                          src={getImageUrl(prodImagen)}
+                          alt="Preview"
+                          className="img-fluid rounded-3 shadow-sm"
+                          style={{ maxHeight: '140px', objectFit: 'cover' }}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/assets/im1.jpeg'; }}
+                        />
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              )}
+
+              {/* TAB 6: CARGA MASIVA CON IA */}
+              {activeTab === 'bulkAi' && (
+                <div>
+                  {/* Zona Dropzone Masivo */}
+                  <div
+                    className={`bulk-dropzone text-center p-3 p-md-4 mb-3 mb-md-4 rounded-4 bg-white shadow-sm position-relative ${bulkDragActive ? 'active' : ''}`}
+                    onDragEnter={handleBulkDrag}
+                    onDragLeave={handleBulkDrag}
+                    onDragOver={handleBulkDrag}
+                    onDrop={handleBulkDrop}
+                    onClick={() => bulkFileInputRef.current?.click()}
+                    style={{
+                      border: '2.5px dashed #9d4edd',
+                      backgroundColor: bulkDragActive ? 'rgba(157, 78, 221, 0.08)' : '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  >
+                    <input
+                      ref={bulkFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleBulkFileChange}
+                      style={{ display: 'none' }}
+                    />
+
+                    <div className="py-2 py-md-3">
+                      <div className="mb-2">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7b2cbf" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                      </div>
+                      <h5 className="fw-bold mb-1 fs-6 fs-md-5" style={{ color: '#4a154b' }}>
+                        Selecciona o arrastra múltiples fotos aquí
+                      </h5>
+                      <p className="text-muted small mb-0">
+                        La Inteligencia Artificial analizará cada foto en paralelo para sugerir títulos, categorías y precios.
+                      </p>
+                    </div>
                   </div>
-                )}
-              </>
-            )}
-          </Modal.Body>
-        </div>
+
+                  {/* Barra de Acciones de Cola Masiva */}
+                  {bulkQueue.length > 0 && (
+                    <div className="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded-3 shadow-sm flex-wrap gap-2">
+                      <div>
+                        <span className="fw-bold text-dark me-2">En cola:</span>
+                        <Badge bg="primary" pill className="fs-6">{bulkQueue.length}</Badge>
+                      </div>
+
+                      <div className="d-flex gap-2 w-100 w-sm-auto justify-content-end">
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={handleClearBulkQueue}
+                          disabled={savingBulk}
+                        >
+                          Limpiar
+                        </Button>
+
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="px-3 fw-semibold"
+                          style={{ background: 'linear-gradient(135deg, #7b2cbf, #9d4edd)', border: 'none' }}
+                          onClick={handleSaveBulkProducts}
+                          disabled={savingBulk || bulkQueue.some(i => i.status === 'analyzing')}
+                        >
+                          {savingBulk ? (
+                            <>
+                              <Spinner animation="border" size="sm" className="me-2" />
+                              Guardando...
+                            </>
+                          ) : (
+                            `💾 Guardar ${bulkQueue.length} productos`
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Grilla de Productos en Cola */}
+                  {bulkQueue.length > 0 ? (
+                    <div className="bulk-queue-grid">
+                      <Row className="g-3">
+                        {bulkQueue.map((item) => (
+                          <Col lg={4} md={6} key={item.id}>
+                            <Card className="border-0 shadow-sm p-3 h-100 bg-white rounded-3 position-relative">
+                              <div className="mb-2 d-flex justify-content-between align-items-center">
+                                <Badge bg={
+                                  item.status === 'done' ? 'success' :
+                                  item.status === 'analyzing' ? 'warning' :
+                                  item.status === 'error' ? 'danger' : 'secondary'
+                                }>
+                                  {item.status === 'done' && '✓ Analizado con IA'}
+                                  {item.status === 'analyzing' && '⏳ Analizando...'}
+                                  {item.status === 'error' && '⚠️ Error IA'}
+                                  {item.status === 'pending' && 'En espera'}
+                                </Badge>
+                              </div>
+
+                              <div className="text-center mb-2">
+                                <img
+                                  src={item.previewUrl}
+                                  alt={item.nombre}
+                                  className="img-fluid rounded-3"
+                                  style={{ height: '140px', width: '100%', objectFit: 'cover' }}
+                                />
+                              </div>
+
+                              <Form.Group className="mb-2">
+                                <Form.Label className="auth-label small mb-1">Nombre / Título</Form.Label>
+                                <Form.Control
+                                  size="sm"
+                                  type="text"
+                                  value={item.nombre}
+                                  onChange={(e) => handleBulkItemChange(item.id, 'nombre', e.target.value)}
+                                  placeholder="Nombre de la pulsera"
+                                />
+                              </Form.Group>
+
+                              <Row className="g-2 mb-2">
+                                <Col xs={6}>
+                                  <Form.Label className="auth-label small mb-1">Categoría</Form.Label>
+                                  <Form.Select
+                                    size="sm"
+                                    value={item.categoria}
+                                    onChange={(e) => handleBulkItemChange(item.id, 'categoria', e.target.value)}
+                                  >
+                                    <option value="Pulseras">Pulseras</option>
+                                    <option value="Collares">Collares</option>
+                                    <option value="Aros">Aros</option>
+                                    <option value="Tobilleras">Tobilleras</option>
+                                    <option value="Anillos">Anillos</option>
+                                  </Form.Select>
+                                </Col>
+                                <Col xs={3}>
+                                  <Form.Label className="auth-label small mb-1">Precio ($)</Form.Label>
+                                  <Form.Control
+                                    size="sm"
+                                    type="number"
+                                    value={item.precio}
+                                    onChange={(e) => handleBulkItemChange(item.id, 'precio', e.target.value)}
+                                  />
+                                </Col>
+                                <Col xs={3}>
+                                  <Form.Label className="auth-label small mb-1">Stock</Form.Label>
+                                  <Form.Control
+                                    size="sm"
+                                    type="number"
+                                    value={item.stock}
+                                    onChange={(e) => handleBulkItemChange(item.id, 'stock', e.target.value)}
+                                  />
+                                </Col>
+                              </Row>
+
+                              <Form.Group className="mb-3">
+                                <Form.Label className="auth-label small mb-1">Descripción</Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={2}
+                                  size="sm"
+                                  value={item.descripcion}
+                                  onChange={(e) => handleBulkItemChange(item.id, 'descripcion', e.target.value)}
+                                  placeholder="Detalle y materiales..."
+                                />
+                              </Form.Group>
+
+                              <div className="d-flex justify-content-end mt-auto">
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  className="w-100"
+                                  onClick={() => handleRemoveBulkItem(item.id)}
+                                >
+                                  Quitar de la cola
+                                </Button>
+                              </div>
+                            </Card>
+                          </Col>
+                        ))}
+                      </Row>
+                    </div>
+                  ) : (
+                    <Card className="border-0 shadow-sm p-4 text-center bg-white rounded-3">
+                      <div className="py-3">
+                        <div className="mb-3 text-muted">
+                          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#9d4edd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        </div>
+                        <h6 className="fw-bold text-dark mb-1">No hay productos en la cola masiva</h6>
+                        <p className="text-muted small mx-auto" style={{ maxWidth: '480px' }}>
+                          Toca o arrastra varias fotos de tu catálogo arriba para ver la IA de Gemini analizando cada accesorio automáticamente.
+                        </p>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </Modal.Body>
       </Modal>
 
       {/* ========================================================================= */}

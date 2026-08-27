@@ -1,17 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Product } from '../components/ProductCard';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { API_BASE_URL } from '../config/api';
 
-export interface CartItem extends Product {
+export interface CartItem {
+  id: number;
+  nombre: string;
+  precio: number;
+  imagen: string;
+  categoria?: string;
   quantity: number;
 }
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  addToCart: (product: any, quantity?: number) => void;
+  removeFromCart: (id: number) => void;
+  updateQuantity: (id: number, quantity: number) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -19,127 +23,142 @@ interface CartContextType {
   setIsCartOpen: (open: boolean) => void;
   openCart: () => void;
   closeCart: () => void;
-  lastAddedItem: { product: Product; quantity: number } | null;
+  lastAddedItem: { product: any; quantity: number } | null;
   dismissNotification: () => void;
   checkoutWhatsApp: (notes?: string, conEnvio?: boolean) => void;
   checkoutInstagram: (notes?: string, conEnvio?: boolean) => Promise<{ success: boolean; message: string; orderCode?: string }>;
-  createDatabaseOrder: (metodoPago?: string, notas?: string, conEnvio?: boolean) => Promise<{ success: boolean; message: string; orderId?: number; orderCode?: string }>;
+  createDatabaseOrder: (metodoPago?: string, notas?: string, conEnvio?: boolean, requireAuth?: boolean) => Promise<{ success: boolean; message: string; orderId?: number; orderCode?: string }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'chunna_cart_items';
-const STORE_PHONE = '549341000000'; // Número oficial de WhatsApp de la tienda
+const STORE_PHONE = '5491100000000'; // Configurable
 
-export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { token, user, isAuthenticated } = useAuth();
-  
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated, token } = useAuth();
+
+  // Inicializar carrito desde localStorage
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const stored = localStorage.getItem(CART_STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch (e) {
-      console.error('Error cargando carrito local:', e);
+      console.warn('Error al leer el carrito de localStorage:', e);
       return [];
     }
   });
 
-  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
-  const [lastAddedItem, setLastAddedItem] = useState<{ product: Product; quantity: number } | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [lastAddedItem, setLastAddedItem] = useState<{ product: any; quantity: number } | null>(null);
 
-  // Sincronizar carrito con localStorage
+  // Persistir en localStorage cada vez que cambie
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     } catch (e) {
-      console.error('Error guardando carrito local:', e);
+      console.warn('Error al persistir el carrito:', e);
     }
   }, [cart]);
 
-  // Auto ocultar notificación después de 4.5 segundos
-  useEffect(() => {
-    if (lastAddedItem) {
-      const timer = setTimeout(() => {
-        setLastAddedItem(null);
-      }, 4500);
-      return () => clearTimeout(timer);
-    }
-  }, [lastAddedItem]);
-
-  const openCart = () => {
-    setLastAddedItem(null);
-    setIsCartOpen(true);
-  };
+  const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
+
   const dismissNotification = () => setLastAddedItem(null);
 
-  const addToCart = (product: Product, quantity = 1) => {
-    setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex((item) => item.id === product.id);
+  // Añadir producto al carrito
+  const addToCart = (product: any, quantity = 1) => {
+    if (!product || !product.id) return;
+
+    setCart((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === product.id);
       if (existingIndex > -1) {
-        const updated = [...prevCart];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: updated[existingIndex].quantity + quantity
-        };
+        const updated = [...prev];
+        updated[existingIndex].quantity += quantity;
         return updated;
       } else {
-        return [...prevCart, { ...product, quantity }];
+        return [
+          ...prev,
+          {
+            id: product.id,
+            nombre: product.nombre || product.name || 'Accesorio Chunna',
+            precio: Number(product.precio || product.price || 0),
+            imagen: product.imagen || product.image || '/assets/im1.jpeg',
+            categoria: product.categoria || product.category || 'Pulseras',
+            quantity
+          }
+        ];
       }
     });
 
-    // Feedback mínimo no bloqueante (toast card)
+    // Disparar micro-notificación visual no invasiva
     setLastAddedItem({ product, quantity });
+
+    // Auto-ocultar notificación a los 4 segundos
+    setTimeout(() => {
+      setLastAddedItem((current) => (current?.product.id === product.id ? null : current));
+    }, 4000);
   };
 
-  const removeFromCart = (productId: number) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
+  // Remover producto
+  const removeFromCart = (id: number) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  // Actualizar cantidad
+  const updateQuantity = (id: number, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(id);
       return;
     }
-    setCart((prevCart) =>
-      prevCart.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
-      )
+    setCart((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
     );
   };
 
+  // Vaciar carrito
   const clearCart = () => {
     setCart([]);
+    try {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Error al limpiar localStorage del carrito:', e);
+    }
   };
 
+  // Totales calculados
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + item.precio * item.quantity, 0);
 
-  // Formatear precio para mensajes
-  const formatMoney = (val: number) => `$${new Intl.NumberFormat('es-AR').format(val)}`;
+  const formatMoney = (value: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(value);
+  };
 
   // Finalizar compra por WhatsApp
   const checkoutWhatsApp = (notes?: string, conEnvio?: boolean) => {
     if (cart.length === 0) return;
 
-    let message = `¡Hola Chunna Accesorios! ✨\nQuiero realizar el siguiente pedido:\n\n`;
-    
+    let message = `¡Hola Chunna Accesorios! ✨ Quiero hacer el siguiente pedido:\n\n`;
+
     cart.forEach((item, idx) => {
       message += `${idx + 1}. *${item.nombre}*\n`;
       message += `   • Cantidad: ${item.quantity} u.\n`;
       message += `   • Subtotal: ${formatMoney(item.precio * item.quantity)}\n\n`;
     });
 
-    message += `💰 *TOTAL A PAGAR: ${formatMoney(totalPrice)}*\n`;
+    message += `💰 *TOTAL: ${formatMoney(totalPrice)}*\n`;
 
     if (conEnvio) {
-      message += `\n📦 *Envío:* Sí (Quiero envío a domicilio)\n`;
+      message += `\n📦 *Envío:* Sí (Quiero envío a domicilio)`;
     } else {
-      message += `\n📦 *Envío:* No (Acuerdo entrega / Retiro)\n`;
+      message += `\n📦 *Envío:* No (Acuerdo entrega / Retiro)`;
     }
 
     if (user) {
-      message += `\n👤 *Datos del Comprador:*`;
+      message += `\n\n👤 *Mis Datos de Comprador:*`;
       message += `\n• Nombre: ${user.name}`;
       if (user.phone) message += `\n• Teléfono: ${user.phone}`;
       if (user.city) message += `\n• Ciudad: ${user.city}`;
@@ -162,20 +181,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: false, message: 'El carrito está vacío.' };
     }
 
-    // Copias de resguardo para armar el mensaje después de limpiar el carrito en createDatabaseOrder
+    // Copias de resguardo para armar el mensaje después de limpiar el carrito
     const cartSnapshot = [...cart];
     const priceSnapshot = totalPrice;
 
-    // 1. Guardar pedido en base de datos para generar el código #PED-XXXX
-    const result = await createDatabaseOrder('transferencia', notes, conEnvio);
-    if (!result.success || !result.orderCode) {
-      return {
-        success: false,
-        message: result.message || 'No se pudo registrar el pedido en la base de datos.'
-      };
-    }
+    // 1. Intentar registrar pedido en base de datos para obtener el código oficial #PED-XXXX
+    let orderCode = `#PED-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const orderCode = result.orderCode;
+    try {
+      const result = await createDatabaseOrder('transferencia', notes, conEnvio, false);
+      if (result.success && result.orderCode) {
+        orderCode = result.orderCode;
+      }
+    } catch (e) {
+      console.warn('Registro en BD omitido (usando código de respaldo):', e);
+    }
 
     // 2. Construir el mensaje detallado del pedido
     let message = `¡Hola Chunna Accesorios! ✨\nQuiero realizar el siguiente pedido (Código: ${orderCode}):\n\n`;
@@ -213,10 +233,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(message);
       } else {
-        // Fallback para navegadores antiguos o entornos sin HTTPS seguro
         const textArea = document.createElement('textarea');
         textArea.value = message;
-        textArea.style.position = 'fixed'; // Evitar scroll
+        textArea.style.position = 'fixed';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
@@ -227,16 +246,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.warn('Fallo al copiar al portapapeles automáticamente:', e);
     }
 
+    // Limpiar carrito tras éxito
+    clearCart();
+
     return {
       success: true,
-      message: `¡Pedido ${orderCode} registrado y copiado al portapapeles!`,
+      message: `¡Pedido ${orderCode} generado y copiado al portapapeles con éxito!`,
       orderCode
     };
   };
 
   // Crear orden en base de datos
-  const createDatabaseOrder = async (metodoPago = 'transferencia', notas?: string, conEnvio?: boolean) => {
-    if (!isAuthenticated || !token) {
+  const createDatabaseOrder = async (
+    metodoPago = 'transferencia',
+    notas?: string,
+    conEnvio?: boolean,
+    requireAuth = true
+  ) => {
+    if (requireAuth && (!isAuthenticated || !token)) {
       return {
         success: false,
         message: 'Debes iniciar sesión para guardar el pedido en tu cuenta.'
@@ -251,12 +278,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({
           items: cart.map((item) => ({
             id: item.id,
@@ -264,6 +296,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             precio: item.precio
           })),
           total: totalPrice,
+          total_price: totalPrice,
           metodo_pago: metodoPago,
           notas: notas || null,
           con_envio: conEnvio || false
@@ -275,24 +308,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!response.ok) {
         return {
           success: false,
-          message: data.message || 'No se pudo registrar el pedido.'
+          message: data.message || 'No se pudo registrar el pedido en el servidor.'
         };
       }
 
-      // Limpiar carrito tras éxito
+      // Limpiar carrito tras éxito si la orden se guardó
       clearCart();
 
       return {
         success: true,
-        message: data.message || 'Pedido creado con éxito.',
+        message: data.message || 'Pedido registrado con éxito.',
         orderId: data.orderId,
         orderCode: data.orderCode
       };
     } catch (error) {
-      console.error('Error al enviar orden a la BD:', error);
+      console.error('Error al enviar orden al backend:', error);
       return {
         success: false,
-        message: 'Error de conexión con el servidor al procesar el pedido.'
+        message: 'Error de conexión con el servidor al registrar el pedido.'
       };
     }
   };

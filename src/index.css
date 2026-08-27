@@ -782,11 +782,27 @@ h2, h3, h4, h5, h6 {
   background: linear-gradient(135deg, var(--color-terracota), var(--color-terracota-dark)) !important;
 }
 
+.custom-admin-modal .modal-dialog {
+  max-width: 95vw;
+  margin: 1.5rem auto;
+}
+
 .custom-admin-modal .modal-content {
   border-radius: 20px;
   border: none;
   overflow: hidden;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-admin-modal .modal-body {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .admin-modal-header {
@@ -819,6 +835,21 @@ h2, h3, h4, h5, h6 {
   padding: 6px;
   border-radius: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 4px;
+}
+
+.admin-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-nav-tabs .nav-item {
+  flex-shrink: 0;
 }
 
 .admin-nav-tabs .admin-tab-link {
@@ -827,15 +858,40 @@ h2, h3, h4, h5, h6 {
   font-weight: 600;
   font-size: 0.92rem;
   color: var(--color-azul-medio);
-  padding: 8px 20px;
+  padding: 8px 16px;
   transition: all 0.2s ease;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .admin-nav-tabs .admin-tab-link.active {
   background-color: var(--color-terracota) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(231, 122, 91, 0.25);
+}
+
+@media (max-width: 768px) {
+  .custom-admin-modal .modal-dialog {
+    margin: 8px auto !important;
+    max-width: calc(100vw - 16px) !important;
+    width: calc(100vw - 16px) !important;
+    height: calc(100dvh - 16px) !important;
+  }
+  .custom-admin-modal .modal-content {
+    max-height: calc(100dvh - 16px) !important;
+    height: 100% !important;
+    border-radius: 16px !important;
+  }
+  .custom-admin-modal .modal-body {
+    padding: 10px !important;
+  }
+  .admin-modal-title {
+    font-size: 1.15rem !important;
+  }
+  .admin-badge-icon {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .admin-stat-card {
