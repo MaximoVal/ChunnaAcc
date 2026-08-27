@@ -69,6 +69,7 @@ export const AdminDashboardModal: React.FC = () => {
   const {
     token,
     isAdmin,
+    user,
     adminDashboardOpen,
     setAdminDashboardOpen,
     triggerProductsRefresh
@@ -873,7 +874,7 @@ export const AdminDashboardModal: React.FC = () => {
                           <span>Sesión de Administración</span>
                         </h6>
                         <div className="small text-muted mb-2">
-                          <strong>Cuenta activa:</strong> admin@chunna.com
+                          <strong>Cuenta activa:</strong> {user?.email}
                         </div>
                         <div className="small text-muted mb-2">
                           <strong>Base de datos:</strong> MySQL (chunna_db)

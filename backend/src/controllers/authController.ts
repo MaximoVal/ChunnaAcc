@@ -72,7 +72,7 @@ import { User } from '../models/userModel.js'; // To access sequelize model dire
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'chunna.accs@gmail.com', // Configurar en Render
+    user: process.env.EMAIL_USER || 'cunna.accs@gmail.com', // Configurar en Render
     pass: process.env.EMAIL_PASS || '' // Contraseña de aplicación (App Password)
   }
 });
@@ -117,7 +117,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       // Enviar correo (no bloqueamos el hilo, lo enviamos asíncronamente)
       if (process.env.EMAIL_PASS) {
         transporter.sendMail({
-          from: '"Chunna Seguridad" <chunna.accs@gmail.com>',
+          from: '"Chunna Seguridad" <cunna.accs@gmail.com>',
           to: user.email,
           subject: 'Código de verificación de Administrador - Chunna Accesorios',
           text: `Hola ${user.name},\n\nTu código de verificación de inicio de sesión es: ${otpCode}\n\nEste código expira en 10 minutos.\nSi no solicitaste esto, ignora este correo.`

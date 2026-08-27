@@ -252,7 +252,7 @@ export const Header: React.FC = () => {
                 WhatsApp
               </NavDropdown.Item>
               <NavDropdown.Item
-                href="mailto:chunna.accs@gmail.com"
+                href="mailto:cunna.accs@gmail.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="dropdown-item-custom"

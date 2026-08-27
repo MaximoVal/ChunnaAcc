@@ -16,10 +16,11 @@ export const initDb = async () => {
     }
 
     // 2. Precargar la cuenta de Administrador por defecto si no existe
-    const adminEmail = process.env.ADMIN_EMAIL || 'chunna.accs@gmail.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'cunna.accs@gmail.com';
     
-    // Eliminar el antiguo administrador si existe
+    // Eliminar administradores antiguos si existen
     await User.destroy({ where: { email: 'admin@chunna.com' } });
+    await User.destroy({ where: { email: 'chunna.accs@gmail.com' } });
 
     const existingAdmin = await User.findOne({ where: { email: adminEmail } });
 

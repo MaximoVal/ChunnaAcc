@@ -17,7 +17,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_EMAIL
-        value: chunna.accs@gmail.com
+        value: cunna.accs@gmail.com
       # Opción 1: Conexión directa mediante URL (Recomendado para Aiven, Railway, TiDB, etc.)
       - key: DATABASE_URL
         sync: false
