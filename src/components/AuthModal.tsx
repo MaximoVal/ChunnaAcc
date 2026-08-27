@@ -16,6 +16,8 @@ export const AuthModal: React.FC = () => {
   // Estados de formularios
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [is2FAPending, setIs2FAPending] = useState(false);
 
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -37,6 +39,8 @@ export const AuthModal: React.FC = () => {
     setValidationErrors([]);
     setSuccessMsg(null);
     setLoginPassword('');
+    setOtpCode('');
+    setIs2FAPending(false);
     setRegPassword('');
     setRegConfirmPassword('');
   };
@@ -51,10 +55,32 @@ export const AuthModal: React.FC = () => {
     setAuthModalMode(mode);
   };
 
+  const { verifyAdmin } = useAuth();
+
   // Manejo de Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    resetFormState();
+    setErrorMsg(null);
+    setValidationErrors([]);
+    setSuccessMsg(null);
+
+    if (is2FAPending) {
+      if (!otpCode.trim()) {
+        setErrorMsg('Por favor ingresa el código de verificación.');
+        return;
+      }
+      setLoading(true);
+      const result = await verifyAdmin(loginEmail, loginPassword, otpCode);
+      setLoading(false);
+
+      if (result.success) {
+        setSuccessMsg(result.message || 'Verificación exitosa.');
+        setTimeout(() => handleClose(), 1000);
+      } else {
+        setErrorMsg(result.message || 'Código inválido.');
+      }
+      return;
+    }
 
     if (!loginEmail.trim() || !loginPassword.trim()) {
       setErrorMsg('Por favor completa todos los campos requeridos.');
@@ -65,11 +91,12 @@ export const AuthModal: React.FC = () => {
     const result = await login(loginEmail, loginPassword);
     setLoading(false);
 
-    if (result.success) {
+    if (result.requires2FA) {
+      setSuccessMsg(result.message || 'Se ha enviado un código a tu correo.');
+      setIs2FAPending(true);
+    } else if (result.success) {
       setSuccessMsg(result.message || 'Inicio de sesión exitoso.');
-      setTimeout(() => {
-        handleClose();
-      }, 1000);
+      setTimeout(() => handleClose(), 1000);
     } else {
       setErrorMsg(result.message || 'Credenciales inválidas.');
       if (result.errors && result.errors.length > 0) {
@@ -210,6 +237,7 @@ export const AuthModal: React.FC = () => {
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="form-control-custom"
                     required
+                    disabled={is2FAPending}
                     autoFocus
                   />
                 </Form.Group>
@@ -222,9 +250,29 @@ export const AuthModal: React.FC = () => {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     className="form-control-custom"
+                    disabled={is2FAPending}
                     required
                   />
                 </Form.Group>
+
+                {is2FAPending && (
+                  <Form.Group className="mb-4">
+                    <Form.Label className="auth-label text-warning-emphasis">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1 mb-1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      Código de Verificación *
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="Ej: 123456"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      className="form-control-custom text-center fs-4 letter-spacing-2"
+                      required
+                      autoFocus
+                    />
+                    <Form.Text className="text-muted">Revisa la bandeja de entrada de {loginEmail}</Form.Text>
+                  </Form.Group>
+                )}
 
                 <Button
                   type="submit"
@@ -234,10 +282,10 @@ export const AuthModal: React.FC = () => {
                   {loading ? (
                     <>
                       <Spinner size="sm" animation="border" />
-                      <span>Verificando credenciales...</span>
+                      <span>{is2FAPending ? 'Verificando código...' : 'Verificando credenciales...'}</span>
                     </>
                   ) : (
-                    'Ingresar a mi Cuenta'
+                    is2FAPending ? 'Verificar y Entrar' : 'Ingresar a mi Cuenta'
                   )}
                 </Button>
 

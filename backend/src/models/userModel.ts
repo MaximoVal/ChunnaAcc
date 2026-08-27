@@ -11,12 +11,14 @@ export interface UserAttributes {
   address?: string | null;
   city?: string | null;
   notes?: string | null;
+  otp_code?: string | null;
+  otp_expires?: Date | null;
   created_at?: Date;
   updated_at?: Date;
 }
 
 export interface UserCreationAttributes
-  extends Optional<UserAttributes, 'id' | 'role' | 'phone' | 'address' | 'city' | 'notes' | 'created_at' | 'updated_at'> {}
+  extends Optional<UserAttributes, 'id' | 'role' | 'phone' | 'address' | 'city' | 'notes' | 'otp_code' | 'otp_expires' | 'created_at' | 'updated_at'> {}
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -28,6 +30,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public address!: string | null;
   public city!: string | null;
   public notes!: string | null;
+  public otp_code!: string | null;
+  public otp_expires!: Date | null;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
 }
@@ -71,6 +75,14 @@ User.init(
     },
     notes: {
       type: DataTypes.TEXT,
+      allowNull: true
+    },
+    otp_code: {
+      type: DataTypes.STRING(10),
+      allowNull: true
+    },
+    otp_expires: {
+      type: DataTypes.DATE,
       allowNull: true
     }
   },

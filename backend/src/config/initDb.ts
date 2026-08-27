@@ -16,12 +16,16 @@ export const initDb = async () => {
     }
 
     // 2. Precargar la cuenta de Administrador por defecto si no existe
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@chunna.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'chunna.accs@gmail.com';
+    
+    // Eliminar el antiguo administrador si existe
+    await User.destroy({ where: { email: 'admin@chunna.com' } });
+
     const existingAdmin = await User.findOne({ where: { email: adminEmail } });
 
     if (!existingAdmin) {
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
+      const hashedPassword = await bcrypt.hash('2620070212', salt);
       await User.create({
         name: 'Administrador Chunna',
         email: adminEmail,
@@ -31,10 +35,16 @@ export const initDb = async () => {
         city: 'Córdoba',
         notes: 'Administrador principal de Chunna Accesorios'
       });
-      console.log(`👑 Cuenta Administrador precargada con éxito en Sequelize: ${adminEmail} / admin123`);
-    } else if (existingAdmin.role !== 'admin') {
-      await existingAdmin.update({ role: 'admin' });
-      console.log(`👑 Rol de usuario actualizado a 'admin' para: ${adminEmail}`);
+      console.log(`👑 Cuenta Administrador precargada con éxito en Sequelize: ${adminEmail} / 2620070212`);
+    } else {
+      // Forzar actualización de contraseña al nuevo valor (2620070212) y asegurar el rol admin
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('2620070212', salt);
+      await existingAdmin.update({ 
+        role: 'admin',
+        password: hashedPassword 
+      });
+      console.log(`👑 Rol y contraseña actualizados para: ${adminEmail}`);
     }
 
     // 3. Precargar catálogo de productos de ejemplo si la tabla está vacía

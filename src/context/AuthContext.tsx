@@ -38,7 +38,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string; errors?: string[] }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; requires2FA?: boolean; message?: string; errors?: string[] }>;
+  verifyAdmin: (email: string, password: string, otpCode: string) => Promise<{ success: boolean; message?: string; errors?: string[] }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string; errors?: string[] }>;
   updateProfile: (data: UpdateProfileData) => Promise<{ success: boolean; message?: string; errors?: string[] }>;
   logout: () => void;
@@ -130,6 +131,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       }
 
+      if (data.requires2FA) {
+        return {
+          success: true,
+          requires2FA: true,
+          message: data.message
+        };
+      }
+
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('chunna_token', data.token);
@@ -143,6 +152,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return {
         success: false,
         message: 'No se pudo conectar con el servidor. Verifica que el backend esté en ejecución.'
+      };
+    }
+  };
+
+  const verifyAdmin = async (email: string, password: string, otpCode: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, otp_code: otpCode })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Error al verificar token',
+          errors: data.errors || []
+        };
+      }
+
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem('chunna_token', data.token);
+      localStorage.setItem('chunna_user', JSON.stringify(data.user));
+
+      return {
+        success: true,
+        message: data.message
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: 'No se pudo conectar con el servidor.'
       };
     }
   };
@@ -256,6 +300,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAdmin: user?.role === 'admin',
         loading,
         login,
+        verifyAdmin,
         register,
         updateProfile,
         logout,
