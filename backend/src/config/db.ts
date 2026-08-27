@@ -4,7 +4,11 @@ import dotenv from 'dotenv';
 // Cargar variables de entorno
 dotenv.config();
 
-const databaseUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+const rawDatabaseUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+// Limpiar ssl-mode de la URL de conexión para evitar advertencias de MySQL2
+const databaseUrl = rawDatabaseUrl
+  ? rawDatabaseUrl.replace(/([?&])ssl-mode=[^&]*/gi, '$1').replace(/[?&]$/, '')
+  : rawDatabaseUrl;
 
 const dbName = process.env.DB_NAME || 'chunna_db';
 const dbUser = process.env.DB_USER || 'root';

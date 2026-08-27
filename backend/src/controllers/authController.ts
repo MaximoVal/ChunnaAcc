@@ -68,27 +68,74 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 import nodemailer from 'nodemailer';
 import { User } from '../models/userModel.js'; // To access sequelize model directly for updates
 
-// Helper para instanciar transportador de nodemailer de forma segura y dinámica
-const getMailTransporter = () => {
+// Helper para enviar correo de forma 100% asíncrona forzando IPv4 (para evitar ENETUNREACH en Render)
+const sendOtpEmailAsync = async (toEmail: string, userName: string, otpCode: string) => {
   const emailUser = (process.env.EMAIL_USER || 'cunna.accs@gmail.com').trim();
-  const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, ''); // Elimina espacios si se copió "xxxx xxxx xxxx xxxx"
+  const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
 
-  return {
-    emailUser,
-    emailPass,
-    transporter: nodemailer.createTransport({
+  if (!emailPass) {
+    console.warn('⚠️ [ALERTA 2FA]: La variable EMAIL_PASS no está configurada en Render.');
+    return;
+  }
+
+  const mailOptions = {
+    from: `"Chunna Accesorios" <${emailUser}>`,
+    to: toEmail,
+    subject: `🔐 Código de verificación Admin: ${otpCode}`,
+    text: `Hola ${userName},\n\nTu código de verificación para ingresar como Administrador es: ${otpCode}\n\nEste código expira en 10 minutos.\nSi no intentaste iniciar sesión, ignora este mensaje.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 25px; border: 1px solid #eaeaea; border-radius: 12px; background-color: #ffffff;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #c86d51; margin: 0; font-size: 24px; font-weight: 700;">Chunna Accesorios</h2>
+          <p style="color: #666; font-size: 13px; margin-top: 4px;">Seguridad de la Cuenta Administrador</p>
+        </div>
+        <p style="font-size: 15px; color: #333; margin-bottom: 12px;">Hola <strong>${userName}</strong>,</p>
+        <p style="font-size: 14px; color: #555; line-height: 1.5;">Ingresa el siguiente código de verificación de 6 dígitos en la tienda para confirmar tu identidad:</p>
+        <div style="background-color: #fcf4f1; border: 1.5px dashed #c86d51; padding: 18px; text-align: center; border-radius: 8px; margin: 22px 0;">
+          <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #c86d51;">${otpCode}</span>
+        </div>
+        <p style="color: #777; font-size: 13px; margin-bottom: 4px;">⏳ <strong>Tiempo de validez:</strong> 10 minutos.</p>
+        <p style="color: #aaa; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">Si tú no solicitaste este código, por favor ignora este correo.</p>
+      </div>
+    `
+  };
+
+  // Intento 1: Puerto 465 (SSL) forzando IPv4 (family: 4)
+  try {
+    const transporter465 = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
-      secure: true, // SSL en puerto 465
-      auth: {
-        user: emailUser,
-        pass: emailPass
-      },
-      connectionTimeout: 5000, // 5 segundos máximo para conectar
-      greetingTimeout: 5000,
-      socketTimeout: 8000
-    })
-  };
+      secure: true,
+      family: 4,
+      auth: { user: emailUser, pass: emailPass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 8000
+    } as any);
+
+    await transporter465.sendMail(mailOptions);
+    console.log(`✅ [2FA] Correo con código OTP enviado exitosamente a ${toEmail} (vía SSL 465 IPv4)`);
+    return;
+  } catch (err465: any) {
+    console.warn(`⚠️ [2FA] Envío por puerto 465 IPv4 falló (${err465?.message}). Reintentando por puerto 587 STARTTLS IPv4...`);
+  }
+
+  // Intento 2: Puerto 587 (STARTTLS) forzando IPv4 (family: 4)
+  try {
+    const transporter587 = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      family: 4,
+      auth: { user: emailUser, pass: emailPass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 8000
+    } as any);
+
+    await transporter587.sendMail(mailOptions);
+    console.log(`✅ [2FA] Correo con código OTP enviado exitosamente a ${toEmail} (vía STARTTLS 587 IPv4)`);
+  } catch (err587: any) {
+    console.error('❌ [2FA ERROR] No se pudo enviar el correo vía Gmail SMTP en ningún puerto:', err587?.message || err587);
+  }
 };
 
 /**
@@ -128,41 +175,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       // Guardar OTP en la base de datos
       await User.update({ otp_code: otpCode, otp_expires: otpExpires }, { where: { id: user.id } });
 
-      const { emailUser, emailPass, transporter } = getMailTransporter();
-
       // Imprimir de inmediato en logs de Render para acceso instantáneo
       console.log(`🔑 [ADMIN 2FA CODE]: El código para ${user.email} es: ${otpCode}`);
 
-      // Enviar correo de forma 100% asíncrona (no bloquea la respuesta HTTP al navegador)
-      if (emailPass) {
-        transporter.sendMail({
-          from: `"Chunna Accesorios" <${emailUser}>`,
-          to: user.email,
-          subject: `🔐 Código de verificación Admin: ${otpCode}`,
-          text: `Hola ${user.name},\n\nTu código de verificación para ingresar como Administrador es: ${otpCode}\n\nEste código expira en 10 minutos.\nSi no intentaste iniciar sesión, ignora este mensaje.`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 25px; border: 1px solid #eaeaea; border-radius: 12px; background-color: #ffffff;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="color: #c86d51; margin: 0; font-size: 24px; font-weight: 700;">Chunna Accesorios</h2>
-                <p style="color: #666; font-size: 13px; margin-top: 4px;">Seguridad de la Cuenta Administrador</p>
-              </div>
-              <p style="font-size: 15px; color: #333; margin-bottom: 12px;">Hola <strong>${user.name}</strong>,</p>
-              <p style="font-size: 14px; color: #555; line-height: 1.5;">Ingresa el siguiente código de verificación de 6 dígitos en la tienda para confirmar tu identidad:</p>
-              <div style="background-color: #fcf4f1; border: 1.5px dashed #c86d51; padding: 18px; text-align: center; border-radius: 8px; margin: 22px 0;">
-                <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #c86d51;">${otpCode}</span>
-              </div>
-              <p style="color: #777; font-size: 13px; margin-bottom: 4px;">⏳ <strong>Tiempo de validez:</strong> 10 minutos.</p>
-              <p style="color: #aaa; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">Si tú no solicitaste este código, por favor ignora este correo.</p>
-            </div>
-          `
-        }).then(() => {
-          console.log(`✅ [2FA] Correo con código OTP enviado exitosamente a ${user.email}`);
-        }).catch((mailError: any) => {
-          console.error('❌ [2FA ERROR] No se pudo enviar el correo vía Gmail SMTP:', mailError?.message || mailError);
-        });
-      } else {
-        console.warn('⚠️ [ALERTA 2FA]: La variable EMAIL_PASS no está configurada en Render.');
-      }
+      // Disparar envío de correo en segundo plano (asíncrono con IPv4)
+      sendOtpEmailAsync(user.email, user.name, otpCode);
 
       // Responder INMEDIATAMENTE al navegador para que muestre el campo del código al instante
       res.status(200).json({
@@ -218,7 +235,8 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
     }
 
     // Verificar OTP
-    if (user.otp_code !== otp_code || !user.otp_expires || new Date() > user.otp_expires) {
+    const cleanOtp = String(otp_code || '').trim();
+    if (!user.otp_code || user.otp_code.trim() !== cleanOtp || !user.otp_expires || new Date() > new Date(user.otp_expires)) {
       res.status(401).json({ success: false, message: 'El código de verificación es inválido o ha expirado.' });
       return;
     }
