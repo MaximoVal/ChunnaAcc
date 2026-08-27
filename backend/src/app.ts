@@ -29,6 +29,15 @@ if (!fs.existsSync(uploadsPath)) {
 }
 app.use('/uploads', express.static(uploadsPath));
 
+// Health check ultra-liviano para Render / Uptime monitors (sin queries ni middleware pesado)
+app.get(['/health', '/api/health'], (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Endpoint de diagnóstico del estado del backend en Render
 app.get('/api/status', (req, res) => {
   res.json({
@@ -66,7 +75,7 @@ if (distPath) {
   console.log(`📦 Sirviendo cliente estático desde: ${distPath}`);
   app.use(express.static(distPath));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) {
       return next();
     }
     res.sendFile(path.join(distPath, 'index.html'));

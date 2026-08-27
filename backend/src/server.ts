@@ -25,6 +25,7 @@ const runServer = async () => {
 
   app.listen(PORT, HOST, () => {
     console.log(`🚀 Servidor listo y escuchando en http://${HOST}:${PORT} (Puerto Render: ${PORT})`);
+    console.log(`💚 Health Check disponible en: /health`);
     console.log(`👉 Diagnóstico API disponible en: /api/status`);
   });
 };
