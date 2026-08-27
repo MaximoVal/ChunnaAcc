@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 -- ==========================================================
 -- 6. TABLA: ENVÍOS (shipments)
 -- Control y seguimiento de envíos asociados a un pedido
--- ==========================================================
+-- ==========================================
 CREATE TABLE IF NOT EXISTS shipments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_id INT NOT NULL UNIQUE,
@@ -129,12 +129,12 @@ CREATE TABLE IF NOT EXISTS shipments (
 
 
 -- ==========================================================
--- 7. CUENTA DE ADMINISTRADOR POR DEFECTO (admin@chunna.com / admin123)
--- Password hasheado con bcrypt (cost 10)
+-- 7. CUENTA DE ADMINISTRADOR POR DEFECTO (cunna.accs@gmail.com / 2620070212)
+-- Password hasheado con bcrypt
 -- ==========================================================
 INSERT INTO users (name, email, password, role, phone, city, notes) VALUES
-('Administrador Chunna', 'admin@chunna.com', '$2b$10$j0O.Tzm3aM2FVIBifsrKD.3b2K40YxmYEGw8un45qlRFtHh9HeHDq', 'admin', '+54 9 11 0000-0000', 'Córdoba', 'Cuenta de administración principal')
-ON DUPLICATE KEY UPDATE password=VALUES(password), role='admin';
+('Administrador Chunna', 'cunna.accs@gmail.com', '$2b$10$wzW1iP8zKovn/QpU7Kq1s.uE9mF5uXvT5a3N1pYk9b8zLqXy7q1s2', 'admin', '+54 9 11 0000-0000', 'Córdoba', 'Cuenta de administración principal')
+ON DUPLICATE KEY UPDATE role='admin';
 
 
 -- ==========================================================

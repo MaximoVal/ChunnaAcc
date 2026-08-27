@@ -14,43 +14,47 @@ export const initDb = async () => {
       await sequelize.sync();
     }
 
-    // 2. Precargar o actualizar cuentas de Administrador por defecto
-    const defaultAdminEmails = [
-      process.env.ADMIN_EMAIL,
-      'cunna.accs@gmail.com',
-      'chunna.accs@gmail.com',
-      'admin@chunna.com'
-    ]
-      .filter(Boolean)
-      .map((e) => normalizeEmail(e as string));
-
-    const uniqueAdminEmails = Array.from(new Set(defaultAdminEmails));
+    // 2. Precargar o actualizar la cuenta de Administrador oficial: cunna.accs@gmail.com
+    const officialAdminEmail = normalizeEmail(process.env.ADMIN_EMAIL || 'cunna.accs@gmail.com');
 
     const salt = await bcrypt.genSalt(10);
     const defaultAdminHash = await bcrypt.hash('2620070212', salt);
 
-    for (const adminEmail of uniqueAdminEmails) {
-      const existingAdmin = await UserModel.findByEmail(adminEmail);
+    // Buscar si ya existe la cuenta admin
+    let existingAdmin = await UserModel.findByEmail(officialAdminEmail);
 
-      if (!existingAdmin) {
-        await User.create({
-          name: 'Administrador Chunna',
-          email: adminEmail,
-          password: defaultAdminHash,
-          role: 'admin',
-          phone: '+54 9 11 0000-0000',
-          city: 'Córdoba',
-          notes: 'Administrador principal de Chunna Accesorios'
-        });
-        console.log(`👑 Cuenta Administrador precargada con éxito: ${adminEmail} (Contraseña: 2620070212)`);
-      } else {
-        // Asegurar que tenga rol admin y contraseña sincronizada
-        await existingAdmin.update({
+    // Si no existe, revisar si existe una cuenta antigua (admin@chunna.com) para migrarla a cunna.accs@gmail.com
+    if (!existingAdmin) {
+      const legacyAdmin = await UserModel.findByEmail('admin@chunna.com');
+      if (legacyAdmin) {
+        await legacyAdmin.update({
+          email: officialAdminEmail,
           role: 'admin',
           password: defaultAdminHash
         });
-        console.log(`👑 Rol y credenciales de Administrador actualizados: ${adminEmail}`);
+        existingAdmin = legacyAdmin;
+        console.log(`👑 Cuenta legacy migrada a: ${officialAdminEmail}`);
       }
+    }
+
+    if (!existingAdmin) {
+      await User.create({
+        name: 'Administrador Chunna',
+        email: officialAdminEmail,
+        password: defaultAdminHash,
+        role: 'admin',
+        phone: '+54 9 11 0000-0000',
+        city: 'Córdoba',
+        notes: 'Administrador principal de Chunna Accesorios'
+      });
+      console.log(`👑 Cuenta Administrador precargada con éxito: ${officialAdminEmail} (Contraseña: 2620070212)`);
+    } else {
+      // Asegurar que tenga rol admin y contraseña sincronizada
+      await existingAdmin.update({
+        role: 'admin',
+        password: defaultAdminHash
+      });
+      console.log(`👑 Rol y credenciales de Administrador actualizados: ${officialAdminEmail} (Contraseña: 2620070212)`);
     }
 
     // 3. Precargar catálogo de productos de ejemplo si la tabla está vacía
