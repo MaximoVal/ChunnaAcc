@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional, Op } from 'sequelize';
+import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
 import sequelize from '../config/db.js';
 
 export interface UserAttributes {
@@ -49,10 +49,10 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public readonly updated_at!: Date;
 
   /**
-   * Retorna una versión segura del usuario sin datos sensibles
+   * Retorna una versión segura del usuario sin datos sensibles (password, otp_code, otp_expires)
    */
   public toSafeObject(): UserSafeAttributes {
-    const plain = this.get({ plain: true });
+    const plain = this.get({ plain: true }) as any;
     const { password, otp_code, otp_expires, ...safeUser } = plain;
     return safeUser as UserSafeAttributes;
   }
@@ -61,7 +61,9 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
 User.init(
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      // Usar INTEGER normal (no UNSIGNED) para coincidir exactamente con la tabla MySQL
+      // que usa INT AUTO_INCREMENT — evita conflictos con ALTER TABLE en sync
+      type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true
     },
@@ -70,12 +72,11 @@ User.init(
       allowNull: false
     },
     email: {
+      // Sin set() hook — la normalización se maneja en la capa de servicio/controlador
+      // para evitar interferencia con el WHERE clause interno de Sequelize
       type: DataTypes.STRING(150),
       allowNull: false,
-      unique: true,
-      set(val: string) {
-        this.setDataValue('email', String(val || '').trim().toLowerCase());
-      }
+      unique: true
     },
     password: {
       type: DataTypes.STRING(255),
@@ -88,27 +89,33 @@ User.init(
     },
     phone: {
       type: DataTypes.STRING(50),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     address: {
       type: DataTypes.STRING(255),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     city: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     notes: {
       type: DataTypes.TEXT,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     otp_code: {
       type: DataTypes.STRING(10),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     otp_expires: {
       type: DataTypes.DATE,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     }
   },
   {
@@ -116,12 +123,15 @@ User.init(
     tableName: 'users',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    // No underscored — los campos ya están explícitamente en snake_case
+    underscored: false
   }
 );
 
 /**
- * Normaliza cualquier cadena de email a minúsculas sin espacios
+ * Normaliza cualquier email a minúsculas sin espacios.
+ * SIEMPRE usar esto antes de guardar o buscar por email.
  */
 export const normalizeEmail = (email: string): string => {
   return String(email || '').trim().toLowerCase();
@@ -129,21 +139,24 @@ export const normalizeEmail = (email: string): string => {
 
 export const UserModel = {
   /**
-   * Buscar un usuario por su email normalizado retornando la instancia de Sequelize
+   * Buscar un usuario por su email.
+   * Usa LOWER() en la query SQL para búsqueda case-insensitive a nivel de base de datos.
+   * Retorna la instancia completa de Sequelize (incluyendo password y otp para verificaciones).
    */
   async findByEmail(email: string): Promise<User | null> {
     const cleanEmail = normalizeEmail(email);
     if (!cleanEmail) return null;
 
     return await User.findOne({
-      where: {
-        email: cleanEmail
-      }
+      where: Sequelize.where(
+        Sequelize.fn('LOWER', Sequelize.col('email')),
+        cleanEmail
+      )
     });
   },
 
   /**
-   * Buscar un usuario por su ID (excluyendo password y OTP)
+   * Buscar un usuario por su ID (sin password ni datos de OTP)
    */
   async findById(id: number): Promise<UserSafeAttributes | null> {
     const user = await User.findByPk(id, {
@@ -153,16 +166,9 @@ export const UserModel = {
   },
 
   /**
-   * Buscar un usuario por su ID incluyendo el password (para operaciones de verificación)
+   * Crear un nuevo usuario con email normalizado
    */
-  async findByIdWithPassword(id: number): Promise<User | null> {
-    return await User.findByPk(id);
-  },
-
-  /**
-   * Crear un nuevo usuario
-   */
-  async create(user: {
+  async create(userData: {
     name: string;
     email: string;
     password: string;
@@ -173,19 +179,19 @@ export const UserModel = {
     notes?: string | null;
   }): Promise<User> {
     return await User.create({
-      name: user.name.trim(),
-      email: normalizeEmail(user.email),
-      password: user.password,
-      role: user.role || 'cliente',
-      phone: user.phone ? user.phone.trim() : null,
-      address: user.address ? user.address.trim() : null,
-      city: user.city ? user.city.trim() : null,
-      notes: user.notes ? user.notes.trim() : null
+      name: userData.name.trim(),
+      email: normalizeEmail(userData.email),
+      password: userData.password,
+      role: userData.role || 'cliente',
+      phone: userData.phone ? userData.phone.trim() : null,
+      address: userData.address ? userData.address.trim() : null,
+      city: userData.city ? userData.city.trim() : null,
+      notes: userData.notes ? userData.notes.trim() : null
     });
   },
 
   /**
-   * Actualizar código OTP y tiempo de expiración
+   * Guardar/actualizar el código OTP y su tiempo de expiración
    */
   async setOtp(id: number, otpCode: string, otpExpires: Date): Promise<boolean> {
     const [affected] = await User.update(
@@ -196,7 +202,7 @@ export const UserModel = {
   },
 
   /**
-   * Limpiar código OTP
+   * Eliminar el código OTP después de haberlo verificado
    */
   async clearOtp(id: number): Promise<boolean> {
     const [affected] = await User.update(
@@ -207,7 +213,7 @@ export const UserModel = {
   },
 
   /**
-   * Actualizar datos simples del perfil de un usuario
+   * Actualizar datos simples del perfil
    */
   async updateProfile(
     id: number,
@@ -224,7 +230,7 @@ export const UserModel = {
   },
 
   /**
-   * Obtener todos los clientes registrados (excluyendo administradores y datos sensibles)
+   * Obtener todos los clientes (excluyendo admins y datos sensibles)
    */
   async findAllClients(): Promise<UserSafeAttributes[]> {
     const users = await User.findAll({
@@ -236,7 +242,7 @@ export const UserModel = {
   },
 
   /**
-   * Contar cantidad total de usuarios registrados con role 'cliente'
+   * Contar usuarios con rol 'cliente'
    */
   async countUsers(): Promise<number> {
     return await User.count({ where: { role: 'cliente' } });
