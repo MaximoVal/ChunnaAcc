@@ -20,15 +20,15 @@ export interface OrderCreationAttributes
   extends Optional<OrderAttributes, 'id' | 'status' | 'user_id' | 'created_at' | 'updated_at'> {}
 
 export class Order extends Model<OrderAttributes, OrderCreationAttributes> implements OrderAttributes {
-  public id!: number;
-  public order_code!: string;
-  public cart_items!: any;
-  public total_price!: number;
-  public status!: 'PENDING_PAYMENT' | 'PAID' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-  public user_id!: number | null;
-  public con_envio!: boolean;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare id: number;
+  declare order_code: string;
+  declare cart_items: any;
+  declare total_price: number;
+  declare status: 'PENDING_PAYMENT' | 'PAID' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  declare user_id: number | null;
+  declare con_envio: boolean;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 }
 
 Order.init(
@@ -99,13 +99,13 @@ export interface OrderItemAttributes {
 export interface OrderItemCreationAttributes extends Optional<OrderItemAttributes, 'id' | 'created_at'> {}
 
 export class OrderItem extends Model<OrderItemAttributes, OrderItemCreationAttributes> implements OrderItemAttributes {
-  public id!: number;
-  public order_id!: number;
-  public product_id!: number;
-  public cantidad!: number;
-  public precio_unitario!: number;
-  public subtotal!: number;
-  public readonly created_at!: Date;
+  declare id: number;
+  declare order_id: number;
+  declare product_id: number;
+  declare cantidad: number;
+  declare precio_unitario: number;
+  declare subtotal: number;
+  declare readonly created_at: Date;
 }
 
 OrderItem.init(

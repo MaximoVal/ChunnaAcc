@@ -29,7 +29,20 @@ export const initDb = async () => {
       });
       console.log(`👑 Cuenta Administrador creada: ${officialAdminEmail} (Contraseña: 2620070212)`);
     } else {
-      console.log(`👑 Administrador ya existe: ${officialAdminEmail}`);
+      // Verificar si la contraseña del admin necesita ser actualizada
+      const currentPassword = existingAdmin.password || existingAdmin.getDataValue('password') || '';
+      let isDefaultValid = false;
+      if (currentPassword.startsWith('$2a$') || currentPassword.startsWith('$2b$') || currentPassword.startsWith('$2y$')) {
+        isDefaultValid = await bcrypt.compare('2620070212', currentPassword).catch(() => false);
+      }
+      
+      if (!isDefaultValid && (currentPassword === '2620070212' || currentPassword === '$2b$10$wzW1iP8zKovn/QpU7Kq1s.uE9mF5uXvT5a3N1pYk9b8zLqXy7q1s2')) {
+        const salt = await bcrypt.genSalt(10);
+        const defaultAdminHash = await bcrypt.hash('2620070212', salt);
+        await UserModel.updatePassword(existingAdmin.id, defaultAdminHash);
+        console.log(`👑 Contraseña del Administrador actualizada con hash bcrypt válido.`);
+      }
+      console.log(`👑 Administrador verificado: ${officialAdminEmail}`);
     }
 
     // 3. Precargar catálogo inicial si la tabla de productos está vacía

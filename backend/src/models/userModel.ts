@@ -34,19 +34,19 @@ export interface UserCreationAttributes
   extends Optional<UserAttributes, 'id' | 'role' | 'phone' | 'address' | 'city' | 'notes' | 'otp_code' | 'otp_expires' | 'created_at' | 'updated_at'> {}
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-  public id!: number;
-  public name!: string;
-  public email!: string;
-  public password!: string;
-  public role!: 'cliente' | 'admin';
-  public phone!: string | null;
-  public address!: string | null;
-  public city!: string | null;
-  public notes!: string | null;
-  public otp_code!: string | null;
-  public otp_expires!: Date | null;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare id: number;
+  declare name: string;
+  declare email: string;
+  declare password: string;
+  declare role: 'cliente' | 'admin';
+  declare phone: string | null;
+  declare address: string | null;
+  declare city: string | null;
+  declare notes: string | null;
+  declare otp_code: string | null;
+  declare otp_expires: Date | null;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 
   /**
    * Retorna una versión segura del usuario sin datos sensibles (password, otp_code, otp_expires)
@@ -210,6 +210,14 @@ export const UserModel = {
       { where: { id } }
     );
     return affected > 0;
+  },
+
+  /**
+   * Actualizar la contraseña de un usuario
+   */
+  async updatePassword(id: number, newPasswordHash: string): Promise<boolean> {
+    const [affectedCount] = await User.update({ password: newPasswordHash }, { where: { id } });
+    return affectedCount > 0;
   },
 
   /**

@@ -63,6 +63,41 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
+ * Helper para verificar la contraseña de forma segura con bcrypt.
+ * Soporta hashes bcrypt y fallback con auto-migración para contraseñas en texto plano.
+ */
+const verifyUserPassword = async (plainPassword: string, user: any): Promise<boolean> => {
+  const storedPassword = String(user.password || user.getDataValue?.('password') || '').trim();
+  if (!storedPassword || !plainPassword) return false;
+
+  let isValid = false;
+
+  // 1. Comparación con bcrypt
+  if (storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$') || storedPassword.startsWith('$2y$')) {
+    try {
+      isValid = await bcrypt.compare(plainPassword, storedPassword);
+    } catch (err) {
+      console.warn('⚠️ Error al verificar hash bcrypt:', err);
+    }
+  }
+
+  // 2. Fallback: Verificación en texto plano (ej: cuentas migradas o creadas por script inicial)
+  if (!isValid && storedPassword === plainPassword) {
+    isValid = true;
+    try {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(plainPassword, salt);
+      await UserModel.updatePassword(user.id, hashedPassword);
+      console.log(`🔒 Contraseña migrada automáticamente a hash bcrypt para usuario ID ${user.id}`);
+    } catch (err) {
+      console.error('Error al migrar contraseña a bcrypt:', err);
+    }
+  }
+
+  return isValid;
+};
+
+/**
  * Inicio de sesión con soporte 2FA para administradores
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -72,16 +107,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Buscar al usuario por email normalizado
     const user = await UserModel.findByEmail(email);
 
-    if (!user || !user.password) {
+    if (!user) {
       res.status(401).json({
         success: false,
-        message: 'Credenciales Invalidas'
+        message: 'No existe ninguna cuenta registrada con este correo electrónico.'
       });
       return;
     }
 
-    // Verificar la contraseña con bcrypt
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // Verificar la contraseña encriptada con bcrypt
+    const isPasswordValid = await verifyUserPassword(password, user);
     if (!isPasswordValid) {
       res.status(401).json({
         success: false,
@@ -157,7 +192,7 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
 
     // Si se adjunta contraseña, validarla
     if (password) {
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await verifyUserPassword(password, user);
       if (!isPasswordValid) {
         res.status(401).json({
           success: false,
@@ -233,7 +268,7 @@ export const resendAdminOtp = async (req: Request, res: Response): Promise<void>
     }
 
     if (password) {
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await verifyUserPassword(password, user);
       if (!isPasswordValid) {
         res.status(401).json({
           success: false,

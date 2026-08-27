@@ -18,16 +18,16 @@ export interface ProductCreationAttributes
   extends Optional<ProductAttributes, 'id' | 'descripcion' | 'imagen' | 'categoria' | 'activo' | 'created_at' | 'updated_at'> {}
 
 export class Product extends Model<ProductAttributes, ProductCreationAttributes> implements ProductAttributes {
-  public id!: number;
-  public nombre!: string;
-  public descripcion!: string | null;
-  public precio!: number;
-  public stock!: number;
-  public imagen!: string | null;
-  public categoria!: string;
-  public activo!: boolean | number;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  declare id: number;
+  declare nombre: string;
+  declare descripcion: string | null;
+  declare precio: number;
+  declare stock: number;
+  declare imagen: string | null;
+  declare categoria: string;
+  declare activo: boolean | number;
+  declare readonly created_at: Date;
+  declare readonly updated_at: Date;
 }
 
 Product.init(

@@ -133,8 +133,8 @@ CREATE TABLE IF NOT EXISTS shipments (
 -- Password hasheado con bcrypt
 -- ==========================================================
 INSERT INTO users (name, email, password, role, phone, city, notes) VALUES
-('Administrador Chunna', 'cunna.accs@gmail.com', '$2b$10$wzW1iP8zKovn/QpU7Kq1s.uE9mF5uXvT5a3N1pYk9b8zLqXy7q1s2', 'admin', '+54 9 11 0000-0000', 'Córdoba', 'Cuenta de administración principal')
-ON DUPLICATE KEY UPDATE role='admin';
+('Administrador Chunna', 'cunna.accs@gmail.com', '$2b$10$hO6XWqN.0kgl0OyTc8hrmeQv0.j9a/rLf5x6PfwzdGr/BC.O4YzYu', 'admin', '+54 9 11 0000-0000', 'Córdoba', 'Cuenta de administración principal')
+ON DUPLICATE KEY UPDATE role='admin', password='$2b$10$hO6XWqN.0kgl0OyTc8hrmeQv0.j9a/rLf5x6PfwzdGr/BC.O4YzYu';
 
 
 -- ==========================================================
