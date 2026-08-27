@@ -116,10 +116,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
+      const trustToken = localStorage.getItem('chunna_admin_trust_token');
+
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password })
+        body: JSON.stringify({
+          email: cleanEmail,
+          password,
+          trust_token: trustToken || undefined
+        })
       });
 
       const data = await response.json();
@@ -138,6 +144,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           requires2FA: true,
           message: data.message
         };
+      }
+
+      if (data.adminTrustToken) {
+        localStorage.setItem('chunna_admin_trust_token', data.adminTrustToken);
       }
 
       setUser(data.user);
@@ -176,6 +186,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           message: data.message || 'Error al verificar el código.',
           errors: data.errors || []
         };
+      }
+
+      if (data.adminTrustToken) {
+        localStorage.setItem('chunna_admin_trust_token', data.adminTrustToken);
       }
 
       setUser(data.user);

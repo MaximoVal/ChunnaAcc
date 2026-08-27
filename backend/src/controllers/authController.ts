@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { UserModel } from '../models/userModel.js';
 import { AuthRequest } from '../middlewares/authMiddleware.js';
-import { generateToken } from '../config/jwt.js';
+import { generateToken, generateTrustDeviceToken, verifyTrustDeviceToken } from '../config/jwt.js';
 import { emailService } from '../services/emailService.js';
 
 /**
@@ -98,11 +98,11 @@ const verifyUserPassword = async (plainPassword: string, user: any): Promise<boo
 };
 
 /**
- * Inicio de sesión con soporte 2FA para administradores
+ * Inicio de sesión con soporte 2FA y dispositivos de confianza (recordar dispositivo por 30 días)
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, trust_token } = req.body;
 
     // Buscar al usuario por email normalizado
     const user = await UserModel.findByEmail(email);
@@ -125,8 +125,36 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // FLUJO ADMIN: Activar autenticación de dos factores (2FA)
+    // FLUJO ADMIN: Autenticación de dos factores o Dispositivo de Confianza (30 días)
     if (user.role === 'admin') {
+      // 1. Comprobar si el navegador/dispositivo ya fue verificado en los últimos 30 días
+      if (trust_token) {
+        const trustPayload = verifyTrustDeviceToken(String(trust_token));
+        if (trustPayload && trustPayload.userId === user.id && trustPayload.email === user.email) {
+          console.log(`🛡️ [ADMIN LOGIN] Dispositivo de confianza verificado (30 días) para: ${user.email}`);
+
+          const token = generateToken({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: 'admin'
+          });
+
+          // Refrescar el token de dispositivo de confianza (extender 30 días adicionales)
+          const newTrustToken = generateTrustDeviceToken(user.id, user.email);
+
+          res.status(200).json({
+            success: true,
+            message: `¡Bienvenido de nuevo, ${user.name}!`,
+            token,
+            adminTrustToken: newTrustToken,
+            user: user.toSafeObject()
+          });
+          return;
+        }
+      }
+
+      // 2. Si no es un dispositivo de confianza o el token expiró (> 30 días): solicitar OTP
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
@@ -174,7 +202,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
- * Verificar código 2FA para administradores
+ * Verificar código 2FA para administradores y registrar el dispositivo como confiable (30 días)
  */
 export const verifyAdminLogin = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -225,7 +253,7 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
     // Limpiar el código OTP una vez usado
     await UserModel.clearOtp(user.id);
 
-    // Emitir el token JWT para el administrador
+    // Emitir el token JWT de sesión
     const token = generateToken({
       id: user.id,
       email: user.email,
@@ -233,12 +261,16 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
       role: 'admin'
     });
 
-    console.log(`👑 [ADMIN 2FA EXITOSO] Sesión concedida al Administrador ${user.name} (${user.email})`);
+    // Generar token de dispositivo de confianza (30 días)
+    const adminTrustToken = generateTrustDeviceToken(user.id, user.email);
+
+    console.log(`👑 [ADMIN 2FA EXITOSO] Sesión concedida y dispositivo registrado por 30 días: ${user.email}`);
 
     res.status(200).json({
       success: true,
       message: `¡Acceso de administrador concedido, ${user.name}!`,
       token,
+      adminTrustToken,
       user: user.toSafeObject()
     });
   } catch (error: any) {

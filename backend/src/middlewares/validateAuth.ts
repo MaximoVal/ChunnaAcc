@@ -100,7 +100,7 @@ export const validateRegister = (req: Request, res: Response, next: NextFunction
  */
 export const validateLogin = (req: Request, res: Response, next: NextFunction): void => {
   const errors: string[] = [];
-  let { email, password } = req.body;
+  let { email, password, trust_token } = req.body;
 
   if (!email || typeof email !== 'string' || email.trim().length === 0) {
     errors.push('El correo electrónico es obligatorio.');
@@ -126,7 +126,8 @@ export const validateLogin = (req: Request, res: Response, next: NextFunction): 
 
   req.body = {
     email,
-    password
+    password,
+    trust_token: trust_token ? String(trust_token).trim() : undefined
   };
 
   next();

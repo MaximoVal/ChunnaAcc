@@ -1,5 +1,6 @@
 import sequelize from './db.js';
 import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
 import { User, UserModel, normalizeEmail } from '../models/userModel.js';
 import { Product } from '../models/productModel.js';
 
@@ -17,48 +18,51 @@ export const initDb = async () => {
     console.warn('   (Las tablas existentes seguirán operativas)');
   }
 
-  // 2. Precargar / Sincronizar cuentas de Administrador
+  // 2. Precargar / Sincronizar ÚNICA cuenta de Administrador: cunna.accs@gmail.com
   try {
-    const adminEmails = [
-      process.env.ADMIN_EMAIL,
-      'cunna.accs@gmail.com',
-      'cunn.accs@gmail.com',
-      'chunna.accs@gmail.com',
-      'admin@chunna.com'
-    ]
-      .filter(Boolean)
-      .map((e) => normalizeEmail(e as string));
-
-    const uniqueAdminEmails = Array.from(new Set(adminEmails));
+    const officialAdminEmail = normalizeEmail(process.env.ADMIN_EMAIL || 'cunna.accs@gmail.com');
 
     const salt = await bcrypt.genSalt(10);
     const defaultAdminHash = await bcrypt.hash('2620070212', salt);
 
-    for (const adminEmail of uniqueAdminEmails) {
-      const existingUser = await UserModel.findByEmail(adminEmail);
+    // Asegurar que cunna.accs@gmail.com exista y tenga rol 'admin'
+    const existingAdmin = await UserModel.findByEmail(officialAdminEmail);
 
-      if (!existingUser) {
-        await User.create({
-          name: 'Administrador Chunna',
-          email: adminEmail,
-          password: defaultAdminHash,
-          role: 'admin',
-          phone: '+54 9 11 0000-0000',
-          city: 'Córdoba',
-          notes: 'Administrador principal de Chunna Accesorios'
-        });
-        console.log(`👑 [INIT DB] Cuenta de Administrador creada exitosamente: ${adminEmail} (Contraseña: 2620070212)`);
-      } else {
-        // Asegurar que tenga ROL ADMIN y contraseña actualizada (incluso si se registró antes como cliente)
-        await existingUser.update({
-          role: 'admin',
-          password: defaultAdminHash
-        });
-        console.log(`👑 [INIT DB] Rol y credenciales de Administrador forzados a 'admin': ${adminEmail} (Contraseña: 2620070212)`);
+    if (!existingAdmin) {
+      await User.create({
+        name: 'Administrador Chunna',
+        email: officialAdminEmail,
+        password: defaultAdminHash,
+        role: 'admin',
+        phone: '+54 9 11 0000-0000',
+        city: 'Córdoba',
+        notes: 'Administrador principal de Chunna Accesorios'
+      });
+      console.log(`👑 [INIT DB] Cuenta de Administrador creada exitosamente: ${officialAdminEmail} (Contraseña: 2620070212)`);
+    } else {
+      await existingAdmin.update({
+        role: 'admin',
+        password: defaultAdminHash
+      });
+      console.log(`👑 [INIT DB] Administrador oficial sincronizado: ${officialAdminEmail} (Rol: 'admin', Contraseña: 2620070212)`);
+    }
+
+    // Degradar cualquier otra cuenta antigua a rol 'cliente' para garantizar que SOLO cunna.accs@gmail.com sea admin
+    const otherAdmins = await User.findAll({
+      where: {
+        role: 'admin',
+        email: { [Op.ne]: officialAdminEmail }
+      }
+    });
+
+    if (otherAdmins.length > 0) {
+      for (const user of otherAdmins) {
+        await user.update({ role: 'cliente' });
+        console.log(`🔒 [INIT DB] Cuenta degradada a cliente (solo ${officialAdminEmail} es admin): ${user.email}`);
       }
     }
   } catch (adminError: any) {
-    console.error('❌ [INIT DB] Error asegurando cuentas de Administrador:', adminError.message);
+    console.error('❌ [INIT DB] Error asegurando cuenta de Administrador:', adminError.message);
   }
 
   // 3. Precargar catálogo inicial si la tabla de productos está vacía

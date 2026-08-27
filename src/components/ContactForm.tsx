@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Button, Spinner, Alert } from 'react-bootstrap';
+import { API_BASE_URL } from '../config/api';
 
 export const ContactForm: React.FC = () => {
   const [nombre, setNombre] = useState('');
@@ -11,7 +12,7 @@ export const ContactForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!nombre || !mail || !mensaje) {
+    if (!nombre.trim() || !mail.trim() || !mensaje.trim()) {
       setStatus({ type: 'danger', message: 'Por favor, completa todos los campos del formulario.' });
       return;
     }
@@ -20,40 +21,35 @@ export const ContactForm: React.FC = () => {
     setStatus(null);
 
     try {
-      /*
-        --- COMIENZO DE INTEGRACIÓN FRONT-BACK ---
-        Cuando integres el backend, harás una petición POST al endpoint local de Express.
+      const response = await fetch(`${API_BASE_URL}/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: nombre.trim(),
+          email: mail.trim(),
+          message: mensaje.trim()
+        })
+      });
 
-        const response = await fetch('http://localhost:5000/api/contacto', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ nombre, mail, mensaje })
-        });
-        
-        if (!response.ok) {
-          throw new Error('Hubo un problema al procesar tu mensaje.');
-        }
+      const data = await response.json();
 
-        const data = await response.json();
-      */
+      if (!response.ok) {
+        throw new Error(data.message || 'Hubo un problema al enviar tu mensaje. Intenta nuevamente.');
+      }
 
-      // Simulación de retraso de red de la llamada a la API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // Simulación de éxito
       setStatus({ 
         type: 'success', 
-        message: '¡Datos enviados correctamente! Muchas gracias por ponerte en contacto con Chunna.' 
+        message: data.message || '¡Datos enviados correctamente! Muchas gracias por ponerte en contacto con Chunna.' 
       });
       
-      // Limpiamos los campos
+      // Limpiamos los campos tras envío exitoso
       setNombre('');
       setMail('');
       setMensaje('');
     } catch (error: any) {
-      console.error('Error al enviar formulario:', error);
+      console.error('Error al enviar formulario de contacto:', error);
       setStatus({ 
         type: 'danger', 
         message: error.message || 'Error de conexión. No pudimos enviar tu mensaje.' 
@@ -95,7 +91,7 @@ export const ContactForm: React.FC = () => {
                   >
                     <div className="text-center text-white">
                       <Spinner animation="border" variant="light" className="mb-2" />
-                      <div>Enviando tu mensaje...</div>
+                      <div>Enviando tu mensaje a Chunna...</div>
                     </div>
                   </div>
                 )}

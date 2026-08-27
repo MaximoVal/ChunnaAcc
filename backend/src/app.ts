@@ -43,12 +43,15 @@ import authRouter from './routes/authRoutes.js';
 import productRouter from './routes/productRoutes.js';
 import adminRouter from './routes/adminRoutes.js';
 import orderRouter from './routes/orderRoutes.js';
+import contactRouter from './routes/contactRoutes.js';
 
 // Registro de rutas API
 app.use('/api/auth', authRouter);
 app.use('/api/products', productRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/orders', orderRouter);
+app.use('/api/contact', contactRouter);
+app.use('/api/contacto', contactRouter);
 
 // Servir la aplicación React (Vite dist) en producción cuando se despliega como servicio web único en Render
 const possibleDistPaths = [
