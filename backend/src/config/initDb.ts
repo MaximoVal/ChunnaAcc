@@ -1,3 +1,4 @@
+import { Op, Sequelize } from 'sequelize';
 import sequelize from './db.js';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/userModel.js';
@@ -15,37 +16,47 @@ export const initDb = async () => {
       await sequelize.sync();
     }
 
-    // 2. Precargar la cuenta de Administrador por defecto si no existe
-    const adminEmail = process.env.ADMIN_EMAIL || 'cunna.accs@gmail.com';
-    
-    // Eliminar administradores antiguos si existen
-    await User.destroy({ where: { email: 'admin@chunna.com' } });
-    await User.destroy({ where: { email: 'chunna.accs@gmail.com' } });
+    // 2. Precargar o actualizar cuentas de Administrador por defecto
+    const defaultAdminEmails = [
+      process.env.ADMIN_EMAIL,
+      'cunna.accs@gmail.com',
+      'chunna.accs@gmail.com'
+    ].filter(Boolean).map(e => String(e).trim().toLowerCase());
 
-    const existingAdmin = await User.findOne({ where: { email: adminEmail } });
+    const uniqueAdminEmails = Array.from(new Set(defaultAdminEmails));
 
-    if (!existingAdmin) {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('2620070212', salt);
-      await User.create({
-        name: 'Administrador Chunna',
-        email: adminEmail,
-        password: hashedPassword,
-        role: 'admin',
-        phone: '+54 9 11 0000-0000',
-        city: 'Córdoba',
-        notes: 'Administrador principal de Chunna Accesorios'
+    const salt = await bcrypt.genSalt(10);
+    const defaultAdminHash = await bcrypt.hash('2620070212', salt);
+
+    for (const adminEmail of uniqueAdminEmails) {
+      const existingAdmin = await User.findOne({
+        where: {
+          [Op.or]: [
+            { email: adminEmail },
+            Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), adminEmail)
+          ]
+        }
       });
-      console.log(`👑 Cuenta Administrador precargada con éxito en Sequelize: ${adminEmail} / 2620070212`);
-    } else {
-      // Forzar actualización de contraseña al nuevo valor (2620070212) y asegurar el rol admin
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('2620070212', salt);
-      await existingAdmin.update({ 
-        role: 'admin',
-        password: hashedPassword 
-      });
-      console.log(`👑 Rol y contraseña actualizados para: ${adminEmail}`);
+
+      if (!existingAdmin) {
+        await User.create({
+          name: 'Administrador Chunna',
+          email: adminEmail,
+          password: defaultAdminHash,
+          role: 'admin',
+          phone: '+54 9 11 0000-0000',
+          city: 'Córdoba',
+          notes: 'Administrador principal de Chunna Accesorios'
+        });
+        console.log(`👑 Cuenta Administrador precargada con éxito: ${adminEmail} (Contraseña: 2620070212)`);
+      } else {
+        // Asegurar que tenga rol admin y contraseña actualizada
+        await existingAdmin.update({
+          role: 'admin',
+          password: defaultAdminHash
+        });
+        console.log(`👑 Rol y contraseña actualizados para Administrador: ${adminEmail}`);
+      }
     }
 
     // 3. Precargar catálogo de productos de ejemplo si la tabla está vacía

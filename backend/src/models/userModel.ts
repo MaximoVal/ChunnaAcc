@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Optional, Op } from 'sequelize';
 import sequelize from '../config/db.js';
 
 export interface UserAttributes {
@@ -97,10 +97,21 @@ User.init(
 
 export const UserModel = {
   /**
-   * Buscar un usuario por su email
+   * Buscar un usuario por su email (insensible a mayúsculas y espacios)
    */
   async findByEmail(email: string): Promise<UserAttributes | null> {
-    const user = await User.findOne({ where: { email } });
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const rawEmail = String(email || '').trim();
+
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { email: cleanEmail },
+          { email: rawEmail }
+        ]
+      }
+    });
+
     return user ? (user.get({ plain: true }) as UserAttributes) : null;
   },
 
