@@ -75,7 +75,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (!user || !user.password) {
       res.status(401).json({
         success: false,
-        message: 'No existe ninguna cuenta registrada con este correo electrónico.'
+        message: 'Credenciales Invalidas'
       });
       return;
     }
