@@ -7,7 +7,13 @@ import {
   getProfile,
   updateProfile
 } from '../controllers/authController.js';
-import { validateRegister, validateLogin, validateProfileUpdate } from '../middlewares/validateAuth.js';
+import {
+  validateRegister,
+  validateLogin,
+  validateAdminVerify,
+  validateResendOtp,
+  validateProfileUpdate
+} from '../middlewares/validateAuth.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = Router();
@@ -15,8 +21,8 @@ const router = Router();
 // Rutas públicas de autenticación
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);
-router.post('/verify-admin', verifyAdminLogin);
-router.post('/resend-otp', resendAdminOtp);
+router.post('/verify-admin', validateAdminVerify, verifyAdminLogin);
+router.post('/resend-otp', validateResendOtp, resendAdminOtp);
 
 // Rutas protegidas (requieren token JWT válido)
 router.get('/profile', authMiddleware, getProfile);

@@ -1,9 +1,7 @@
-import { Op, Sequelize } from 'sequelize';
 import sequelize from './db.js';
 import bcrypt from 'bcryptjs';
-import { User } from '../models/userModel.js';
+import { User, UserModel, normalizeEmail } from '../models/userModel.js';
 import { Product } from '../models/productModel.js';
-import { Order, OrderItem } from '../models/orderModel.js';
 
 export const initDb = async () => {
   try {
@@ -20,8 +18,11 @@ export const initDb = async () => {
     const defaultAdminEmails = [
       process.env.ADMIN_EMAIL,
       'cunna.accs@gmail.com',
-      'chunna.accs@gmail.com'
-    ].filter(Boolean).map(e => String(e).trim().toLowerCase());
+      'chunna.accs@gmail.com',
+      'admin@chunna.com'
+    ]
+      .filter(Boolean)
+      .map((e) => normalizeEmail(e as string));
 
     const uniqueAdminEmails = Array.from(new Set(defaultAdminEmails));
 
@@ -29,14 +30,7 @@ export const initDb = async () => {
     const defaultAdminHash = await bcrypt.hash('2620070212', salt);
 
     for (const adminEmail of uniqueAdminEmails) {
-      const existingAdmin = await User.findOne({
-        where: {
-          [Op.or]: [
-            { email: adminEmail },
-            Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), adminEmail)
-          ]
-        }
-      });
+      const existingAdmin = await UserModel.findByEmail(adminEmail);
 
       if (!existingAdmin) {
         await User.create({
@@ -50,12 +44,12 @@ export const initDb = async () => {
         });
         console.log(`👑 Cuenta Administrador precargada con éxito: ${adminEmail} (Contraseña: 2620070212)`);
       } else {
-        // Asegurar que tenga rol admin y contraseña actualizada
+        // Asegurar que tenga rol admin y contraseña sincronizada
         await existingAdmin.update({
           role: 'admin',
           password: defaultAdminHash
         });
-        console.log(`👑 Rol y contraseña actualizados para Administrador: ${adminEmail}`);
+        console.log(`👑 Rol y credenciales de Administrador actualizados: ${adminEmail}`);
       }
     }
 

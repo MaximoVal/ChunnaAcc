@@ -1,4 +1,7 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export interface SendOtpEmailParams {
   to: string;
@@ -7,22 +10,41 @@ export interface SendOtpEmailParams {
 }
 
 /**
- * Servicio robusto de envío de correos electrónicos para Chunna Accesorios
- * 
- * Soporta múltiples estrategias de envío:
- * 1. Resend API (HTTP REST vía HTTPS - 100% inmune a bloqueos de puertos en Render)
- * 2. Brevo API (HTTP REST vía HTTPS)
- * 3. Custom SMTP (Nodemailer con servidor personalizado)
- * 4. Gmail SMTP (Nodemailer forzando IPv4 en puertos 465 SSL y 587 STARTTLS)
+ * Servicio de envío de correos electrónicos mediante el SDK oficial de Resend
+ * 100% inmune a bloqueos de puertos SMTP en entornos cloud como Render (vía HTTPS REST API).
  */
 class EmailService {
-  /**
-   * Genera el HTML y texto plano para el correo de código OTP 2FA
-   */
-  private generateOtpEmailTemplate(userName: string, otpCode: string) {
-    const textContent = `Hola ${userName},\n\nTu código de verificación para ingresar como Administrador en Chunna Accesorios es: ${otpCode}\n\nEste código tiene una validez de 10 minutos.\nSi no solicitaste este código, por favor ignora este mensaje.\n\n— Equipo de Chunna Accesorios`;
+  private resendClient: Resend | null = null;
+  private fromEmail: string;
 
-    const htmlContent = `
+  constructor() {
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    if (apiKey) {
+      this.resendClient = new Resend(apiKey);
+    }
+    this.fromEmail = process.env.RESEND_FROM?.trim() || 'Chunna Accesorios <onboarding@resend.dev>';
+  }
+
+  /**
+   * Obtiene o inicializa la instancia de Resend bajo demanda
+   */
+  private getClient(): Resend | null {
+    if (!this.resendClient) {
+      const apiKey = process.env.RESEND_API_KEY?.trim();
+      if (apiKey) {
+        this.resendClient = new Resend(apiKey);
+      }
+    }
+    return this.resendClient;
+  }
+
+  /**
+   * Genera las plantillas de HTML y texto plano para el código OTP de Administrador
+   */
+  private generateOtpTemplate(userName: string, otpCode: string): { html: string; text: string } {
+    const text = `Hola ${userName},\n\nTu código de verificación de 6 dígitos para ingresar como Administrador en Chunna Accesorios es: ${otpCode}\n\nEste código tiene una validez de 10 minutos.\nSi no solicitaste este código, por favor ignora este mensaje.\n\n— Equipo de Chunna Accesorios`;
+
+    const html = `
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -30,11 +52,11 @@ class EmailService {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Código de Verificación Administrador</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f8f6f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2c2523;">
+<body style="margin: 0; padding: 0; background-color: #f8f6f4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #2c2523;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8f6f4; padding: 30px 10px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" max-width="520" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #efe8e4;" cellspacing="0" cellpadding="0" border="0">
+        <table role="presentation" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #efe8e4;" cellspacing="0" cellpadding="0" border="0">
           
           <!-- Encabezado de Marca -->
           <tr>
@@ -59,11 +81,11 @@ class EmailService {
                   Acceso de Administrador
                 </h2>
                 <p style="margin: 6px 0 0 0; font-size: 14px; color: #6e655f;">
-                  Hola <strong>${userName}</strong>, usa el siguiente código de seguridad para iniciar sesión:
+                  Hola <strong>${userName}</strong>, usa el siguiente código de seguridad para iniciar sesión en tu panel:
                 </p>
               </div>
 
-              <!-- Caja del Código OTP -->
+              <!-- Código OTP -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 25px 0;">
                 <tr>
                   <td align="center" style="background-color: #fbf7f4; border: 2px dashed #d97757; border-radius: 12px; padding: 22px 15px;">
@@ -74,21 +96,21 @@ class EmailService {
                 </tr>
               </table>
 
-              <!-- Información de Seguridad -->
+              <!-- Aviso de Validez -->
               <div style="background-color: #f8fafc; border-left: 4px solid #d97757; padding: 12px 15px; border-radius: 6px; margin: 20px 0 10px 0;">
                 <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
-                  ⏳ <strong>Tiempo de validez:</strong> 10 minutos.<br>
-                  🛡️ <strong>Seguridad:</strong> Nunca compartas este código con nadie.
+                  ⏳ <strong>Validez:</strong> 10 minutos.<br>
+                  🛡️ <strong>Seguridad:</strong> Nunca compartas este código con terceros.
                 </p>
               </div>
 
               <p style="margin: 25px 0 0 0; font-size: 12px; color: #94a3b8; line-height: 1.5; text-align: center;">
-                Si tú no intentaste iniciar sesión en el panel de administración, puedes ignorar este mensaje con total seguridad.
+                Si tú no solicitaste este código, puedes ignorar este correo de forma segura.
               </p>
             </td>
           </tr>
 
-          <!-- Pie de Página -->
+          <!-- Pie de página -->
           <tr>
             <td style="background-color: #f8f6f4; padding: 20px 30px; border-top: 1px solid #efe8e4; text-align: center;">
               <p style="margin: 0; font-size: 11px; color: #9c8e85;">
@@ -105,207 +127,14 @@ class EmailService {
 </html>
     `;
 
-    return { textContent, htmlContent };
+    return { html, text };
   }
 
   /**
-   * Intento 1: Envío mediante Resend API (HTTP REST vía HTTPS)
-   * Extremadamente confiable en Render (no usa puertos SMTP, usa HTTPS nativo).
-   */
-  private async sendViaResend(to: string, userName: string, otpCode: string, html: string, text: string): Promise<boolean> {
-    const resendApiKey = process.env.RESEND_API_KEY?.trim();
-    if (!resendApiKey) return false;
-
-    const fromEmail = process.env.RESEND_FROM || 'Chunna Accesorios <onboarding@resend.dev>';
-
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [to],
-          subject: `🔐 Código de acceso Admin: ${otpCode} - Chunna Accesorios`,
-          html,
-          text
-        })
-      });
-
-      if (response.ok) {
-        console.log(`✅ [EMAIL SERVICE] Correo OTP enviado exitosamente a ${to} mediante Resend API (HTTP REST).`);
-        return true;
-      } else {
-        const errorData = await response.text();
-        console.warn(`⚠️ [EMAIL SERVICE] Resend API devolvió error (${response.status}): ${errorData}`);
-      }
-    } catch (err: any) {
-      console.warn(`⚠️ [EMAIL SERVICE] Falló el envío por Resend API:`, err?.message || err);
-    }
-    return false;
-  }
-
-  /**
-   * Intento 2: Envío mediante Brevo API (HTTP REST vía HTTPS)
-   */
-  private async sendViaBrevo(to: string, userName: string, otpCode: string, html: string, text: string): Promise<boolean> {
-    const brevoApiKey = process.env.BREVO_API_KEY?.trim();
-    if (!brevoApiKey) return false;
-
-    const senderEmail = process.env.EMAIL_USER?.trim() || 'cunna.accs@gmail.com';
-
-    try {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': brevoApiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: { name: 'Chunna Accesorios', email: senderEmail },
-          to: [{ email: to, name: userName }],
-          subject: `🔐 Código de acceso Admin: ${otpCode} - Chunna Accesorios`,
-          htmlContent: html,
-          textContent: text
-        })
-      });
-
-      if (response.ok) {
-        console.log(`✅ [EMAIL SERVICE] Correo OTP enviado exitosamente a ${to} mediante Brevo API (HTTP REST).`);
-        return true;
-      } else {
-        const errorData = await response.text();
-        console.warn(`⚠️ [EMAIL SERVICE] Brevo API devolvió error (${response.status}): ${errorData}`);
-      }
-    } catch (err: any) {
-      console.warn(`⚠️ [EMAIL SERVICE] Falló el envío por Brevo API:`, err?.message || err);
-    }
-    return false;
-  }
-
-  /**
-   * Intento 3: Envío mediante Custom SMTP si está definido
-   */
-  private async sendViaCustomSmtp(to: string, userName: string, otpCode: string, html: string, text: string): Promise<boolean> {
-    const smtpHost = process.env.SMTP_HOST?.trim();
-    const smtpPort = Number(process.env.SMTP_PORT || 587);
-    const smtpUser = process.env.SMTP_USER?.trim();
-    const smtpPass = process.env.SMTP_PASS?.trim();
-
-    if (!smtpHost || !smtpUser || !smtpPass) return false;
-
-    try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 10000
-      } as any);
-
-      await transporter.sendMail({
-        from: `"Chunna Accesorios" <${smtpUser}>`,
-        to,
-        subject: `🔐 Código de acceso Admin: ${otpCode} - Chunna Accesorios`,
-        html,
-        text
-      });
-
-      console.log(`✅ [EMAIL SERVICE] Correo OTP enviado exitosamente a ${to} mediante SMTP Personalizado (${smtpHost}:${smtpPort}).`);
-      return true;
-    } catch (err: any) {
-      console.warn(`⚠️ [EMAIL SERVICE] Falló el envío por Custom SMTP (${smtpHost}):`, err?.message || err);
-    }
-    return false;
-  }
-
-  /**
-   * Intento 4: Envío mediante Gmail SMTP forzando IPv4 en puertos 465 (SSL) y 587 (STARTTLS)
-   */
-  private async sendViaGmailSmtp(to: string, userName: string, otpCode: string, html: string, text: string): Promise<boolean> {
-    const emailUser = (process.env.EMAIL_USER || 'cunna.accs@gmail.com').trim();
-    // Limpiar todos los espacios de la contraseña de aplicación de Google
-    const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
-
-    if (!emailPass) {
-      console.warn('\n================================================================');
-      console.warn('⚠️ [AVISO DE CONFIGURACIÓN DE CORREO EN RENDER]');
-      console.warn('La variable EMAIL_PASS (Contraseña de aplicación de Google) no está configurada en Render.');
-      console.warn('Para recibir los correos de 2FA en tu bandeja de entrada:');
-      console.warn('1. Ve a tu Cuenta de Google -> Seguridad -> Contraseñas de aplicaciones.');
-      console.warn('2. Genera una nueva contraseña (16 letras).');
-      console.warn('3. Agrégala en Render Dashboard -> Environment: EMAIL_PASS = tu_contraseña_sin_espacios');
-      console.warn('================================================================\n');
-      return false;
-    }
-
-    const mailOptions = {
-      from: `"Chunna Accesorios" <${emailUser}>`,
-      to,
-      subject: `🔐 Código de acceso Admin: ${otpCode} - Chunna Accesorios`,
-      html,
-      text
-    };
-
-    // Sub-intento 4a: Puerto 465 (SSL directo) forzando IPv4 (family: 4)
-    try {
-      const transporter465 = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        family: 4,
-        auth: { user: emailUser, pass: emailPass },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 9000,
-        greetingTimeout: 5000,
-        socketTimeout: 10000
-      } as any);
-
-      await transporter465.sendMail(mailOptions);
-      console.log(`✅ [EMAIL SERVICE] Correo OTP enviado exitosamente a ${to} vía Gmail SMTP (Puerto 465 SSL IPv4).`);
-      return true;
-    } catch (err465: any) {
-      console.warn(`⚠️ [EMAIL SERVICE] Puerto 465 SSL falló (${err465?.message}). Probando con Puerto 587 STARTTLS...`);
-    }
-
-    // Sub-intento 4b: Puerto 587 (STARTTLS) forzando IPv4 (family: 4)
-    try {
-      const transporter587 = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        family: 4,
-        auth: { user: emailUser, pass: emailPass },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 9000,
-        greetingTimeout: 5000,
-        socketTimeout: 10000
-      } as any);
-
-      await transporter587.sendMail(mailOptions);
-      console.log(`✅ [EMAIL SERVICE] Correo OTP enviado exitosamente a ${to} vía Gmail SMTP (Puerto 587 STARTTLS IPv4).`);
-      return true;
-    } catch (err587: any) {
-      console.error(`❌ [EMAIL SERVICE ERROR] Falló el envío por Gmail SMTP en ambos puertos: ${err587?.message || err587}`);
-      if (String(err587?.message || '').includes('535') || String(err587?.message || '').includes('BadCredentials')) {
-        console.error('👉 Tip: El error 535 indica que la contraseña de aplicación de Google (EMAIL_PASS) es incorrecta o expiró.');
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Método público para enviar el código de verificación 2FA
-   * Ejecuta las estrategias en cascada e imprime el código de rescate en consola.
+   * Envía el código OTP de verificación 2FA al administrador mediante Resend SDK
    */
   public async sendAdminOtpEmail({ to, userName, otpCode }: SendOtpEmailParams): Promise<boolean> {
-    const { htmlContent, textContent } = this.generateOtpEmailTemplate(userName, otpCode);
-
-    // Banner de seguridad en consola de Render para acceso instantáneo de emergencia
+    // 1. Siempre registrar en los logs de la aplicación para acceso de emergencia
     console.log('\n================================================================');
     console.log('🔑 [ADMIN 2FA - CÓDIGO DE VERIFICACIÓN GENERADO]');
     console.log(`   Destinatario: ${to} (${userName})`);
@@ -313,27 +142,39 @@ class EmailService {
     console.log(`   Validez:      10 minutos`);
     console.log('================================================================\n');
 
-    // 1. Probar Resend API (HTTP REST)
-    if (process.env.RESEND_API_KEY) {
-      const sent = await this.sendViaResend(to, userName, otpCode, htmlContent, textContent);
-      if (sent) return true;
+    const client = this.getClient();
+
+    if (!client) {
+      console.warn('⚠️ [RESEND EMAIL SERVICE] La variable RESEND_API_KEY no está configurada.');
+      console.warn('👉 Para recibir los correos reales en tu bandeja de entrada:');
+      console.warn('   1. Crea una cuenta gratuita en https://resend.com');
+      console.warn('   2. Agrega tu API Key en las variables de entorno: RESEND_API_KEY = re_xxx');
+      console.warn('   (Puedes usar el código mostrado arriba en la consola para acceder mientras tanto).');
+      return false;
     }
 
-    // 2. Probar Brevo API (HTTP REST)
-    if (process.env.BREVO_API_KEY) {
-      const sent = await this.sendViaBrevo(to, userName, otpCode, htmlContent, textContent);
-      if (sent) return true;
-    }
+    const { html, text } = this.generateOtpTemplate(userName, otpCode);
 
-    // 3. Probar Custom SMTP si está definido
-    if (process.env.SMTP_HOST) {
-      const sent = await this.sendViaCustomSmtp(to, userName, otpCode, htmlContent, textContent);
-      if (sent) return true;
-    }
+    try {
+      const response = await client.emails.send({
+        from: this.fromEmail,
+        to: [to],
+        subject: `🔐 Código de acceso Admin: ${otpCode} - Chunna Accesorios`,
+        html,
+        text
+      });
 
-    // 4. Probar Gmail SMTP con IPv4
-    const sentGmail = await this.sendViaGmailSmtp(to, userName, otpCode, htmlContent, textContent);
-    return sentGmail;
+      if (response.error) {
+        console.error('❌ [RESEND EMAIL ERROR] Falló el envío de correo:', response.error);
+        return false;
+      }
+
+      console.log(`✅ [RESEND EMAIL SERVICE] Correo OTP enviado exitosamente a ${to} (Email ID: ${response.data?.id})`);
+      return true;
+    } catch (error: any) {
+      console.error('❌ [RESEND EMAIL EXCEPTION] Error inesperado enviando correo:', error?.message || error);
+      return false;
+    }
   }
 }
 

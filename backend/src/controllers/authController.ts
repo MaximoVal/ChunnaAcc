@@ -1,13 +1,9 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { Op, Sequelize } from 'sequelize';
-import { User, UserModel } from '../models/userModel.js';
+import { UserModel } from '../models/userModel.js';
 import { AuthRequest } from '../middlewares/authMiddleware.js';
+import { generateToken } from '../config/jwt.js';
 import { emailService } from '../services/emailService.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'chunna_secreto_super_seguro_2026';
-const JWT_EXPIRES_IN = '365d'; // Mantiene la sesión iniciada por 1 año
 
 /**
  * Registro de un nuevo usuario
@@ -16,19 +12,9 @@ const JWT_EXPIRES_IN = '365d'; // Mantiene la sesión iniciada por 1 año
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, phone, address, city, notes } = req.body;
-    const cleanEmail = String(email || '').trim().toLowerCase();
-    const rawEmail = String(email || '').trim();
 
-    // Verificar si el correo ya existe
-    const existingUser = await User.findOne({
-      where: {
-        [Op.or]: [
-          { email: cleanEmail },
-          { email: rawEmail }
-        ]
-      }
-    }) || await UserModel.findByEmail(cleanEmail);
-
+    // Verificar si el correo ya existe en la base de datos
+    const existingUser = await UserModel.findByEmail(email);
     if (existingUser) {
       res.status(409).json({
         success: false,
@@ -37,39 +23,38 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Hashear la contraseña de forma segura
+    // Hashear la contraseña con bcrypt
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Crear el usuario en la BD SIEMPRE con rol 'cliente'
-    const newUser = await User.create({
-      name: name.trim(),
-      email: cleanEmail,
+    // Crear el usuario SIEMPRE con rol 'cliente'
+    const newUser = await UserModel.create({
+      name,
+      email,
       password: hashedPassword,
       role: 'cliente',
-      phone: phone ? phone.trim() : null,
-      address: address ? address.trim() : null,
-      city: city ? city.trim() : null,
-      notes: notes ? notes.trim() : null
+      phone,
+      address,
+      city,
+      notes
     });
 
-    // Generar el token JWT incluyendo el rol
-    const token = jwt.sign(
-      { id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
-
-    const { password: _, otp_code: __, otp_expires: ___, ...userData } = newUser.get({ plain: true });
+    // Generar el token JWT
+    const token = generateToken({
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role
+    });
 
     res.status(201).json({
       success: true,
       message: '¡Registro exitoso! Bienvenido a Chunna Accesorios.',
       token,
-      user: userData
+      user: newUser.toSafeObject()
     });
   } catch (error: any) {
-    console.error('Error en el registro:', error);
+    console.error('❌ [AUTH ERROR] Error en registro:', error?.message || error);
     res.status(500).json({
       success: false,
       message: 'Ocurrió un error al procesar el registro en el servidor.'
@@ -83,25 +68,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-    const cleanEmail = String(email || '').trim().toLowerCase();
-    const rawEmail = String(email || '').trim();
 
-    console.log(`\n👉 [LOGIN INTENTO] Buscando usuario: "${cleanEmail}" (raw: "${rawEmail}")`);
-
-    // Buscar al usuario de manera insensible a mayúsculas/minúsculas
-    const user = await User.findOne({
-      where: {
-        [Op.or]: [
-          { email: cleanEmail },
-          { email: rawEmail }
-        ]
-      }
-    }) || await User.findOne({
-      where: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanEmail)
-    }) || await UserModel.findByEmail(cleanEmail);
+    // Buscar al usuario por email normalizado
+    const user = await UserModel.findByEmail(email);
 
     if (!user || !user.password) {
-      console.warn(`⚠️ [LOGIN FALLIDO] Usuario no encontrado en la base de datos: "${cleanEmail}"`);
       res.status(401).json({
         success: false,
         message: 'No existe ninguna cuenta registrada con este correo electrónico.'
@@ -109,12 +80,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    console.log(`👤 [LOGIN USUARIO ENCONTRADO] ID=${user.id}, Nombre="${user.name}", Rol="${user.role}", Email="${user.email}"`);
-
-    // Comparar la contraseña ingresada con el hash
+    // Verificar la contraseña con bcrypt
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.warn(`⚠️ [LOGIN FALLIDO] Contraseña incorrecta para el usuario: "${user.email}"`);
       res.status(401).json({
         success: false,
         message: 'La contraseña ingresada es incorrecta. Por favor verifícala.'
@@ -122,25 +90,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    console.log(`✅ [LOGIN CONTRASEÑA VÁLIDA] Autenticación de credenciales exitosa para: "${user.email}"`);
-
-    // SI ES ADMIN: Habilitar autenticación de doble factor (2FA)
+    // FLUJO ADMIN: Activar autenticación de dos factores (2FA)
     if (user.role === 'admin') {
-      // Generar código OTP de 6 dígitos numéricos
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos de validez
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
-      // Guardar OTP en la base de datos
-      await User.update({ otp_code: otpCode, otp_expires: otpExpires }, { where: { id: user.id } });
+      // Guardar OTP en BD
+      await UserModel.setOtp(user.id, otpCode, otpExpires);
 
-      // Disparar envío de correo
+      // Enviar correo con Resend (asíncrono con manejo interno de errores)
       emailService.sendAdminOtpEmail({
         to: user.email,
         userName: user.name,
         otpCode
+      }).catch((err) => {
+        console.error('❌ [EMAIL BACKGROUND ERROR]', err);
       });
 
-      // Responder de inmediato al navegador para que solicite el código
       res.status(200).json({
         success: true,
         requires2FA: true,
@@ -149,24 +115,22 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Para clientes normales: Generar el token JWT directamente
-    const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, role: user.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
-
-    // Retornar datos del usuario sin la contraseña ni tokens internos
-    const { password: _, otp_code: __, otp_expires: ___, ...userData } = (user instanceof User ? user.get({ plain: true }) : user) as any;
+    // FLUJO CLIENTE: Emitir token de acceso JWT directamente
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    });
 
     res.status(200).json({
       success: true,
       message: `¡Bienvenido/a de nuevo, ${user.name}!`,
       token,
-      user: userData
+      user: user.toSafeObject()
     });
   } catch (error: any) {
-    console.error('Error en el login:', error);
+    console.error('❌ [AUTH ERROR] Error en login:', error?.message || error);
     res.status(500).json({
       success: false,
       message: 'Ocurrió un error en el servidor al intentar iniciar sesión.'
@@ -180,42 +144,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const verifyAdminLogin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, otp_code } = req.body;
-    const cleanEmail = String(email || '').trim().toLowerCase();
-    const rawEmail = String(email || '').trim();
-    const cleanOtp = String(otp_code || '').replace(/\D/g, '').trim();
 
-    console.log(`\n👉 [2FA VERIFY INTENTO] Buscando Admin: "${cleanEmail}", Código ingresado: "${cleanOtp}"`);
-
-    if (!cleanEmail) {
-      res.status(400).json({
-        success: false,
-        message: 'El correo electrónico es requerido.'
-      });
-      return;
-    }
-
-    if (!cleanOtp || cleanOtp.length !== 6) {
-      res.status(400).json({
-        success: false,
-        message: 'El código de verificación debe tener 6 dígitos numéricos.'
-      });
-      return;
-    }
-
-    // Buscar al usuario administrador
-    const user = await User.findOne({
-      where: {
-        [Op.or]: [
-          { email: cleanEmail },
-          { email: rawEmail }
-        ]
-      }
-    }) || await User.findOne({
-      where: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanEmail)
-    });
+    const user = await UserModel.findByEmail(email);
 
     if (!user || user.role !== 'admin') {
-      console.warn(`⚠️ [2FA VERIFY FALLIDO] No se encontró cuenta de admin para: "${cleanEmail}"`);
       res.status(401).json({
         success: false,
         message: 'No se encontró una cuenta de Administrador con el correo electrónico proporcionado.'
@@ -223,11 +155,10 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Si se envía contraseña, verificarla opcionalmente por seguridad adicional
+    // Si se adjunta contraseña, validarla
     if (password) {
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        console.warn(`⚠️ [2FA VERIFY FALLIDO] Contraseña incorrecta para: "${user.email}"`);
         res.status(401).json({
           success: false,
           message: 'La contraseña ingresada es incorrecta.'
@@ -236,10 +167,9 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
       }
     }
 
-    // Verificar código OTP
+    // Validar código OTP
     const storedOtp = String(user.otp_code || '').trim();
-    if (!storedOtp || storedOtp !== cleanOtp) {
-      console.warn(`⚠️ [2FA VERIFY FALLIDO] Código no coincide para '${user.email}'. Recibido: '${cleanOtp}', Esperado: '${storedOtp}'`);
+    if (!storedOtp || storedOtp !== otp_code) {
       res.status(401).json({
         success: false,
         message: 'El código de verificación ingresado es incorrecto.'
@@ -247,39 +177,37 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Verificar si el código ha expirado
+    // Validar expiración del OTP
     const isExpired = !user.otp_expires || new Date(user.otp_expires).getTime() < Date.now();
     if (isExpired) {
-      console.warn(`⚠️ [2FA VERIFY FALLIDO] Código expirado para '${user.email}'. Expiración: ${user.otp_expires}`);
       res.status(401).json({
         success: false,
-        message: 'El código de verificación ha expirado (validez de 10 minutos). Solicita un nuevo código.'
+        message: 'El código de verificación ha expirado (validez de 10 minutos). Solicita uno nuevo.'
       });
       return;
     }
 
-    // Limpiar el código OTP tras una verificación exitosa
-    await user.update({ otp_code: null, otp_expires: null });
+    // Limpiar el código OTP una vez usado
+    await UserModel.clearOtp(user.id);
 
-    // Generar el token JWT para el administrador
-    const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, role: user.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    // Emitir el token JWT para el administrador
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: 'admin'
+    });
 
-    const { password: _, otp_code: __, otp_expires: ___, ...userData } = user.get({ plain: true });
-
-    console.log(`👑 [2FA VERIFY EXITOSO] ¡Sesión concedida al Administrador ${user.name} (${user.email})!`);
+    console.log(`👑 [ADMIN 2FA EXITOSO] Sesión concedida al Administrador ${user.name} (${user.email})`);
 
     res.status(200).json({
       success: true,
       message: `¡Acceso de administrador concedido, ${user.name}!`,
       token,
-      user: userData
+      user: user.toSafeObject()
     });
   } catch (error: any) {
-    console.error('Error verificando 2FA:', error);
+    console.error('❌ [AUTH ERROR] Error al verificar 2FA:', error?.message || error);
     res.status(500).json({
       success: false,
       message: 'Ocurrió un error en el servidor al verificar el código.'
@@ -293,27 +221,8 @@ export const verifyAdminLogin = async (req: Request, res: Response): Promise<voi
 export const resendAdminOtp = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-    const cleanEmail = String(email || '').trim().toLowerCase();
-    const rawEmail = String(email || '').trim();
 
-    if (!cleanEmail) {
-      res.status(400).json({
-        success: false,
-        message: 'El correo electrónico es requerido.'
-      });
-      return;
-    }
-
-    const user = await User.findOne({
-      where: {
-        [Op.or]: [
-          { email: cleanEmail },
-          { email: rawEmail }
-        ]
-      }
-    }) || await User.findOne({
-      where: Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('email')), cleanEmail)
-    });
+    const user = await UserModel.findByEmail(email);
 
     if (!user || user.role !== 'admin') {
       res.status(401).json({
@@ -338,13 +247,15 @@ export const resendAdminOtp = async (req: Request, res: Response): Promise<void>
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-    await user.update({ otp_code: otpCode, otp_expires: otpExpires });
+    await UserModel.setOtp(user.id, otpCode, otpExpires);
 
-    // Enviar nuevo correo
+    // Enviar correo con Resend
     emailService.sendAdminOtpEmail({
       to: user.email,
       userName: user.name,
       otpCode
+    }).catch((err) => {
+      console.error('❌ [EMAIL BACKGROUND ERROR]', err);
     });
 
     res.status(200).json({
@@ -352,7 +263,7 @@ export const resendAdminOtp = async (req: Request, res: Response): Promise<void>
       message: `Hemos enviado un nuevo código de verificación a ${user.email}.`
     });
   } catch (error: any) {
-    console.error('Error al reenviar OTP 2FA:', error);
+    console.error('❌ [AUTH ERROR] Error al reenviar OTP:', error?.message || error);
     res.status(500).json({
       success: false,
       message: 'Error en el servidor al reenviar el código.'
@@ -387,7 +298,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
       user
     });
   } catch (error: any) {
-    console.error('Error al obtener perfil:', error);
+    console.error('❌ [AUTH ERROR] Error al obtener perfil:', error?.message || error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener la información del perfil.'
@@ -396,7 +307,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
 };
 
 /**
- * Actualizar datos simples del perfil (seguimiento de comprador)
+ * Actualizar datos del perfil de usuario autenticado
  */
 export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -434,7 +345,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       user: updatedUser
     });
   } catch (error: any) {
-    console.error('Error al actualizar perfil:', error);
+    console.error('❌ [AUTH ERROR] Error al actualizar perfil:', error?.message || error);
     res.status(500).json({
       success: false,
       message: 'Error al actualizar el perfil en el servidor.'

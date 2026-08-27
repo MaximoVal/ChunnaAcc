@@ -19,7 +19,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
     "mysql2": "^3.10.1",
-    "nodemailer": "^9.0.5",
+    "resend": "^6.24.0",
     "sequelize": "^6.37.8"
   },
   "devDependencies": {
@@ -29,7 +29,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^20.14.9",
-    "@types/nodemailer": "^8.0.1",
     "tsx": "^4.15.7",
     "typescript": "^5.5.2"
   }
