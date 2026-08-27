@@ -44,4 +44,10 @@ services:
         value: chunna_meta_webhook_token_2026
       - key: PAGE_ACCESS_TOKEN
         sync: false
+      # Configuración de Correo Electrónico (2FA para Administrador con Gmail)
+      - key: EMAIL_USER
+        value: cunna.accs@gmail.com
+      - key: EMAIL_PASS
+        sync: false
+
 

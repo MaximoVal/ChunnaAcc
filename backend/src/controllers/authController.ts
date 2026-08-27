@@ -68,14 +68,25 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 import nodemailer from 'nodemailer';
 import { User } from '../models/userModel.js'; // To access sequelize model directly for updates
 
-// Configurar transportador de nodemailer
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'cunna.accs@gmail.com', // Configurar en Render
-    pass: process.env.EMAIL_PASS || '' // Contraseña de aplicación (App Password)
-  }
-});
+// Helper para instanciar transportador de nodemailer de forma segura y dinámica
+const getMailTransporter = () => {
+  const emailUser = (process.env.EMAIL_USER || 'cunna.accs@gmail.com').trim();
+  const emailPass = (process.env.EMAIL_PASS || '').replace(/\s+/g, ''); // Elimina espacios si se copió "xxxx xxxx xxxx xxxx"
+
+  return {
+    emailUser,
+    emailPass,
+    transporter: nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true, // SSL en puerto 465
+      auth: {
+        user: emailUser,
+        pass: emailPass
+      }
+    })
+  };
+};
 
 /**
  * Inicio de sesión con soporte 2FA para administradores
@@ -114,22 +125,45 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       // Guardar OTP en la base de datos
       await User.update({ otp_code: otpCode, otp_expires: otpExpires }, { where: { id: user.id } });
 
-      // Enviar correo (no bloqueamos el hilo, lo enviamos asíncronamente)
-      if (process.env.EMAIL_PASS) {
-        transporter.sendMail({
-          from: '"Chunna Seguridad" <cunna.accs@gmail.com>',
-          to: user.email,
-          subject: 'Código de verificación de Administrador - Chunna Accesorios',
-          text: `Hola ${user.name},\n\nTu código de verificación de inicio de sesión es: ${otpCode}\n\nEste código expira en 10 minutos.\nSi no solicitaste esto, ignora este correo.`
-        }).catch(err => console.error('Error enviando correo OTP:', err));
+      const { emailUser, emailPass, transporter } = getMailTransporter();
+
+      if (emailPass) {
+        try {
+          await transporter.sendMail({
+            from: `"Chunna Accesorios" <${emailUser}>`,
+            to: user.email,
+            subject: `🔐 Código de verificación Admin: ${otpCode}`,
+            text: `Hola ${user.name},\n\nTu código de verificación para ingresar como Administrador es: ${otpCode}\n\nEste código expira en 10 minutos.\nSi no intentaste iniciar sesión, ignora este mensaje.`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 25px; border: 1px solid #eaeaea; border-radius: 12px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <h2 style="color: #c86d51; margin: 0; font-size: 24px; font-weight: 700;">Chunna Accesorios</h2>
+                  <p style="color: #666; font-size: 13px; margin-top: 4px;">Seguridad de la Cuenta Administrador</p>
+                </div>
+                <p style="font-size: 15px; color: #333; margin-bottom: 12px;">Hola <strong>${user.name}</strong>,</p>
+                <p style="font-size: 14px; color: #555; line-height: 1.5;">Ingresa el siguiente código de verificación de 6 dígitos en la tienda para confirmar tu identidad:</p>
+                <div style="background-color: #fcf4f1; border: 1.5px dashed #c86d51; padding: 18px; text-align: center; border-radius: 8px; margin: 22px 0;">
+                  <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #c86d51;">${otpCode}</span>
+                </div>
+                <p style="color: #777; font-size: 13px; margin-bottom: 4px;">⏳ <strong>Tiempo de validez:</strong> 10 minutos.</p>
+                <p style="color: #aaa; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; pt-2;">Si tú no solicitaste este código, por favor ignora este correo.</p>
+              </div>
+            `
+          });
+          console.log(`✅ [2FA] Correo con código OTP enviado exitosamente a ${user.email}`);
+        } catch (mailError: any) {
+          console.error('❌ [2FA ERROR] No se pudo enviar el correo vía Gmail SMTP:', mailError?.message || mailError);
+          console.warn(`🔑 [CÓDIGO DE EMERGENCIA EN LOGS]: El código para ${user.email} es: ${otpCode}`);
+        }
       } else {
-        console.warn(`[DEVELOPMENT ONLY] Admin OTP para ${user.email} es: ${otpCode}`);
+        console.warn('⚠️ [ALERTA 2FA]: La variable EMAIL_PASS no está configurada en Render.');
+        console.warn(`🔑 [CÓDIGO DE EMERGENCIA EN LOGS]: El código para ${user.email} es: ${otpCode}`);
       }
 
       res.status(200).json({
         success: true,
         requires2FA: true,
-        message: 'Por seguridad, hemos enviado un código de verificación a tu correo.'
+        message: 'Por seguridad, te enviamos un código de verificación de 6 dígitos a tu correo.'
       });
       return;
     }
