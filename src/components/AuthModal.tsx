@@ -16,13 +16,16 @@ export const AuthModal: React.FC = () => {
   // Estados de formularios
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [is2FAPending, setIs2FAPending] = useState(false);
 
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [regPhone, setRegPhone] = useState('');
   const [regAddress, setRegAddress] = useState('');
   const [regCity, setRegCity] = useState('');
@@ -39,10 +42,13 @@ export const AuthModal: React.FC = () => {
     setValidationErrors([]);
     setSuccessMsg(null);
     setLoginPassword('');
+    setShowLoginPassword(false);
     setOtpCode('');
     setIs2FAPending(false);
     setRegPassword('');
+    setShowRegPassword(false);
     setRegConfirmPassword('');
+    setShowRegConfirmPassword(false);
   };
 
   const handleClose = () => {
@@ -244,15 +250,36 @@ export const AuthModal: React.FC = () => {
 
                 <Form.Group className="mb-4">
                   <Form.Label className="auth-label">Contraseña *</Form.Label>
-                  <Form.Control
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="form-control-custom"
-                    disabled={is2FAPending}
-                    required
-                  />
+                  <div className="password-input-wrapper">
+                    <Form.Control
+                      type={showLoginPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="form-control-custom"
+                      disabled={is2FAPending}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn-password-toggle"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      title={showLoginPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      tabIndex={-1}
+                    >
+                      {showLoginPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </Form.Group>
 
                 {is2FAPending && (
@@ -340,26 +367,68 @@ export const AuthModal: React.FC = () => {
 
                     <Form.Group className="mb-3">
                       <Form.Label className="auth-label">Contraseña *</Form.Label>
-                      <Form.Control
-                        type="password"
-                        placeholder="Mínimo 6 caracteres"
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        className="form-control-custom"
-                        required
-                      />
+                      <div className="password-input-wrapper">
+                        <Form.Control
+                          type={showRegPassword ? 'text' : 'password'}
+                          placeholder="Mínimo 6 caracteres"
+                          value={regPassword}
+                          onChange={(e) => setRegPassword(e.target.value)}
+                          className="form-control-custom"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn-password-toggle"
+                          onClick={() => setShowRegPassword(!showRegPassword)}
+                          title={showRegPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                          tabIndex={-1}
+                        >
+                          {showRegPassword ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </Form.Group>
 
                     <Form.Group className="mb-2">
                       <Form.Label className="auth-label">Confirmar Contraseña *</Form.Label>
-                      <Form.Control
-                        type="password"
-                        placeholder="Repite la contraseña"
-                        value={regConfirmPassword}
-                        onChange={(e) => setRegConfirmPassword(e.target.value)}
-                        className="form-control-custom"
-                        required
-                      />
+                      <div className="password-input-wrapper">
+                        <Form.Control
+                          type={showRegConfirmPassword ? 'text' : 'password'}
+                          placeholder="Repite la contraseña"
+                          value={regConfirmPassword}
+                          onChange={(e) => setRegConfirmPassword(e.target.value)}
+                          className="form-control-custom"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn-password-toggle"
+                          onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                          title={showRegConfirmPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                          tabIndex={-1}
+                        >
+                          {showRegConfirmPassword ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </Form.Group>
                   </div>
                 </Col>
