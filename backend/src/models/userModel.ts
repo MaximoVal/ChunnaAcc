@@ -248,6 +248,40 @@ export const UserModel = {
   },
 
   /**
+   * Actualizar datos completos de un usuario/cliente por parte del administrador
+   */
+  async updateUserByAdmin(
+    id: number,
+    data: {
+      name?: string;
+      email?: string;
+      phone?: string | null;
+      address?: string | null;
+      city?: string | null;
+      notes?: string | null;
+    }
+  ): Promise<boolean> {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name.trim();
+    if (data.email !== undefined) updateData.email = normalizeEmail(data.email);
+    if (data.phone !== undefined) updateData.phone = data.phone ? data.phone.trim() : null;
+    if (data.address !== undefined) updateData.address = data.address ? data.address.trim() : null;
+    if (data.city !== undefined) updateData.city = data.city ? data.city.trim() : null;
+    if (data.notes !== undefined) updateData.notes = data.notes ? data.notes.trim() : null;
+
+    const [affectedCount] = await User.update(updateData, { where: { id } });
+    return affectedCount > 0;
+  },
+
+  /**
+   * Eliminar un usuario/cliente por ID
+   */
+  async deleteUser(id: number): Promise<boolean> {
+    const affectedCount = await User.destroy({ where: { id } });
+    return affectedCount > 0;
+  },
+
+  /**
    * Contar usuarios con rol 'cliente'
    */
   async countUsers(): Promise<number> {

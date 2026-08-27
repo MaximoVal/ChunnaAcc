@@ -4,7 +4,12 @@ import {
   getAdminOrders,
   updateOrderStatus,
   getAdminUsers,
+  updateAdminUser,
+  deleteAdminUser,
+  getAdminProducts,
   createAdminProduct,
+  updateAdminProduct,
+  deleteAdminProduct,
   analyzeProductImage,
   bulkCreateAdminProducts
 } from '../controllers/adminController.js';
@@ -24,11 +29,16 @@ router.get('/stats', getAdminStats);
 router.get('/orders', getAdminOrders);
 router.put('/orders/:id/status', updateOrderStatus);
 
-// 3. Seguimiento de clientes y compradores
+// 3. Gestión de clientes y usuarios (CRUD)
 router.get('/users', getAdminUsers);
+router.put('/users/:id', updateAdminUser);
+router.delete('/users/:id', deleteAdminUser);
 
-// 4. Carga de nuevos productos individuales
+// 4. Gestión de catálogo de productos (CRUD)
+router.get('/products', getAdminProducts);
 router.post('/products', createAdminProduct);
+router.put('/products/:id', updateAdminProduct);
+router.delete('/products/:id', deleteAdminProduct);
 
 // 5. Subida de imágenes de productos
 router.post('/upload', (req, res) => {
@@ -56,5 +66,3 @@ router.post('/ai/analyze-image', upload.single('image'), analyzeProductImage);
 router.post('/ai/bulk-create', bulkCreateAdminProducts);
 
 export default router;
-
-

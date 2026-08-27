@@ -159,6 +159,52 @@ export const ProductModel = {
   },
 
   /**
+   * Obtener todos los productos (activos e inactivos) para el panel de administración
+   */
+  async findAllAdmin(): Promise<ProductAttributes[]> {
+    const products = await Product.findAll({
+      order: [['id', 'DESC']]
+    });
+    return products.map((p) => p.get({ plain: true }) as ProductAttributes);
+  },
+
+  /**
+   * Actualizar un producto existente
+   */
+  async update(
+    id: number,
+    data: {
+      nombre?: string;
+      descripcion?: string | null;
+      precio?: number;
+      stock?: number;
+      imagen?: string | null;
+      categoria?: string;
+      activo?: boolean | number;
+    }
+  ): Promise<boolean> {
+    const updateData: any = {};
+    if (data.nombre !== undefined) updateData.nombre = String(data.nombre).trim();
+    if (data.descripcion !== undefined) updateData.descripcion = data.descripcion ? String(data.descripcion).trim() : null;
+    if (data.precio !== undefined) updateData.precio = Number(data.precio);
+    if (data.stock !== undefined) updateData.stock = Number(data.stock);
+    if (data.imagen !== undefined) updateData.imagen = String(data.imagen).trim();
+    if (data.categoria !== undefined) updateData.categoria = String(data.categoria).trim();
+    if (data.activo !== undefined) updateData.activo = Boolean(data.activo);
+
+    const [affectedCount] = await Product.update(updateData, { where: { id } });
+    return affectedCount > 0;
+  },
+
+  /**
+   * Eliminar un producto permanentemente
+   */
+  async delete(id: number): Promise<boolean> {
+    const affectedCount = await Product.destroy({ where: { id } });
+    return affectedCount > 0;
+  },
+
+  /**
    * Contar total de productos activos y stock acumulado
    */
   async getStats(): Promise<{ totalProducts: number; totalStock: number }> {

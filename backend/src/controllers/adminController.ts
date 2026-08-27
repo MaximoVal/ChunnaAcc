@@ -96,7 +96,13 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
 };
 
 /**
- * Obtener lista de clientes registrados para seguimiento de compradores
+ * =====================================================================
+ * GESTIÓN DE CLIENTES / USUARIOS (CRUD)
+ * =====================================================================
+ */
+
+/**
+ * Obtener lista de clientes registrados
  */
 export const getAdminUsers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -115,11 +121,142 @@ export const getAdminUsers = async (req: AuthRequest, res: Response): Promise<vo
 };
 
 /**
+ * Actualizar datos de un cliente
+ */
+export const updateAdminUser = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = Number(req.params.id);
+    const { name, email, phone, address, city, notes } = req.body;
+
+    const existingUser = await UserModel.findById(userId);
+    if (!existingUser) {
+      res.status(404).json({
+        success: false,
+        message: 'Cliente no encontrado.'
+      });
+      return;
+    }
+
+    // No permitir modificar cuenta de administrador a través de este endpoint
+    if (existingUser.role === 'admin' && req.user?.id !== userId) {
+      res.status(403).json({
+        success: false,
+        message: 'No puedes modificar la cuenta de un administrador desde esta sección.'
+      });
+      return;
+    }
+
+    const updated = await UserModel.updateUserByAdmin(userId, {
+      name,
+      email,
+      phone,
+      address,
+      city,
+      notes
+    });
+
+    if (!updated) {
+      res.status(400).json({
+        success: false,
+        message: 'No se pudieron actualizar los datos del cliente.'
+      });
+      return;
+    }
+
+    const updatedUser = await UserModel.findById(userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Datos del cliente actualizados con éxito.',
+      user: updatedUser
+    });
+  } catch (error: any) {
+    console.error('Error al actualizar cliente:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el cliente.'
+    });
+  }
+};
+
+/**
+ * Eliminar una cuenta de cliente
+ */
+export const deleteAdminUser = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = Number(req.params.id);
+
+    const userToDelete = await UserModel.findById(userId);
+    if (!userToDelete) {
+      res.status(404).json({
+        success: false,
+        message: 'Cliente no encontrado.'
+      });
+      return;
+    }
+
+    // Seguridad: Impedir borrar cuentas de administrador
+    if (userToDelete.role === 'admin' || userToDelete.email === 'cunna.accs@gmail.com') {
+      res.status(403).json({
+        success: false,
+        message: 'Por seguridad, no está permitido eliminar la cuenta del Administrador principal.'
+      });
+      return;
+    }
+
+    const deleted = await UserModel.deleteUser(userId);
+    if (!deleted) {
+      res.status(400).json({
+        success: false,
+        message: 'No se pudo eliminar el cliente.'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Cuenta del cliente eliminada correctamente.'
+    });
+  } catch (error: any) {
+    console.error('Error al eliminar cliente:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar la cuenta del cliente.'
+    });
+  }
+};
+
+/**
+ * =====================================================================
+ * GESTIÓN DE PRODUCTOS (CRUD)
+ * =====================================================================
+ */
+
+/**
+ * Obtener todos los productos (activos e inactivos) para el panel de administración
+ */
+export const getAdminProducts = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const products = await ProductModel.findAllAdmin();
+    res.status(200).json({
+      success: true,
+      products
+    });
+  } catch (error: any) {
+    console.error('Error al obtener productos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener la lista de productos del catálogo.'
+    });
+  }
+};
+
+/**
  * Crear un nuevo producto individual desde el panel de administración
  */
 export const createAdminProduct = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { nombre, descripcion, precio, stock, imagen, categoria } = req.body;
+    const { nombre, descripcion, precio, stock, imagen, categoria, activo } = req.body;
 
     if (!nombre || !precio || isNaN(Number(precio))) {
       res.status(400).json({
@@ -136,7 +273,7 @@ export const createAdminProduct = async (req: AuthRequest, res: Response): Promi
       stock: stock !== undefined && !isNaN(Number(stock)) ? Number(stock) : 10,
       imagen: imagen ? String(imagen).trim() : '/assets/im1.jpeg',
       categoria: categoria ? String(categoria).trim() : 'Pulseras',
-      activo: 1
+      activo: activo !== undefined ? Boolean(activo) : true
     });
 
     const newProduct = await ProductModel.findById(productId);
@@ -156,6 +293,85 @@ export const createAdminProduct = async (req: AuthRequest, res: Response): Promi
 };
 
 /**
+ * Actualizar un producto existente
+ */
+export const updateAdminProduct = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const productId = Number(req.params.id);
+    const { nombre, descripcion, precio, stock, imagen, categoria, activo } = req.body;
+
+    if (precio !== undefined && isNaN(Number(precio))) {
+      res.status(400).json({
+        success: false,
+        message: 'El precio debe ser un número válido.'
+      });
+      return;
+    }
+
+    const updated = await ProductModel.update(productId, {
+      nombre,
+      descripcion,
+      precio: precio !== undefined ? Number(precio) : undefined,
+      stock: stock !== undefined ? Number(stock) : undefined,
+      imagen,
+      categoria,
+      activo
+    });
+
+    if (!updated) {
+      res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado.'
+      });
+      return;
+    }
+
+    const product = await ProductModel.findById(productId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Producto actualizado con éxito.',
+      product
+    });
+  } catch (error: any) {
+    console.error('Error al actualizar producto:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el producto.'
+    });
+  }
+};
+
+/**
+ * Eliminar un producto del catálogo
+ */
+export const deleteAdminProduct = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const productId = Number(req.params.id);
+    const deleted = await ProductModel.delete(productId);
+
+    if (!deleted) {
+      res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado.'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Producto eliminado correctamente del catálogo.'
+    });
+  } catch (error: any) {
+    console.error('Error al eliminar producto:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar el producto.'
+    });
+  }
+};
+
+/**
  * =====================================================================
  * CONTROLADORES DE INTELIGENCIA ARTIFICIAL & CARGA MASIVA
  * =====================================================================
@@ -163,12 +379,6 @@ export const createAdminProduct = async (req: AuthRequest, res: Response): Promi
 
 /**
  * 1. Analizar imagen con IA para autocompletar campos (nombre, descripción, categoría, precio)
- * 
- * Flujo:
- * - Recibe el archivo de imagen subido por el middleware Multer.
- * - Llama a aiService pasándole la ruta del archivo y su mimeType.
- * - Construye la URL estática accesible para el navegador.
- * - Devuelve al frontend los datos analizados por la IA junto con la URL de la imagen.
  */
 export const analyzeProductImage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -203,11 +413,6 @@ export const analyzeProductImage = async (req: AuthRequest, res: Response): Prom
 
 /**
  * 2. Carga Masiva: Crear un lote de múltiples productos en la base de datos de una sola vez
- * 
- * Flujo:
- * - Recibe un array de productos [{ nombre, descripcion, precio, stock, imagen, categoria }, ...]
- * - Valida que contenga al menos 1 producto y que los campos requeridos estén presentes.
- * - Llama a ProductModel.createMany(...) para ejecutar una única inserción SQL eficiente.
  */
 export const bulkCreateAdminProducts = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -247,4 +452,3 @@ export const bulkCreateAdminProducts = async (req: AuthRequest, res: Response): 
     });
   }
 };
-
