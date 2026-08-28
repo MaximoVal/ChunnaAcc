@@ -65,4 +65,11 @@ router.post('/ai/analyze-image', upload.single('image'), analyzeProductImage);
 // 7. Carga masiva de productos analizados
 router.post('/ai/bulk-create', bulkCreateAdminProducts);
 
+// 8. Gestión de materiales (CRUD)
+import { getAdminMaterials, createMaterial, updateMaterial, deleteMaterial } from '../controllers/materialController.js';
+router.get('/materials', getAdminMaterials);
+router.post('/materials', createMaterial);
+router.put('/materials/:id', updateMaterial);
+router.delete('/materials/:id', deleteMaterial);
+
 export default router;

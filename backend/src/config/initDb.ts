@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
 import { User, UserModel, normalizeEmail } from '../models/userModel.js';
 import { Product } from '../models/productModel.js';
+import { Material } from '../models/materialModel.js';
 
 export const initDb = async () => {
   console.log('\n================================================================');
@@ -63,6 +64,31 @@ export const initDb = async () => {
     }
   } catch (adminError: any) {
     console.error('❌ [INIT DB] Error asegurando cuenta de Administrador:', adminError.message);
+  }
+
+  // 2.5 Seed initial materials
+  try {
+    const countMaterials = await Material.count();
+    if (countMaterials === 0) {
+      await Material.bulkCreate([
+        { nombre: 'Macramé', slug: 'macrame' },
+        { nombre: 'Mostacillas', slug: 'mostacillas' },
+        { nombre: 'Cristales', slug: 'cristales' }
+      ]);
+      console.log('✅ [INIT DB] Materiales iniciales precargados con éxito.');
+      
+      // Migrate existing products
+      const materials = await Material.findAll();
+      for (const material of materials) {
+        await Product.update(
+          { material_id: material.id },
+          { where: { categoria: material.slug } }
+        );
+      }
+      console.log('✅ [INIT DB] Productos existentes migrados a material_id con éxito.');
+    }
+  } catch (materialError: any) {
+    console.error('❌ [INIT DB] Error precargando o migrando materiales:', materialError.message);
   }
 
   // 3. Precargar catálogo inicial si la tabla de productos está vacía

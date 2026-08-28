@@ -47,7 +47,18 @@ export interface ProductItem {
   stock: number;
   imagen?: string | null;
   categoria: string;
+  material_id?: number | null;
+  material_nombre?: string | null;
   activo: boolean | number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MaterialItem {
+  id: number;
+  nombre: string;
+  slug: string;
+  activo: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -65,6 +76,7 @@ export interface BulkAIProductItem {
   nombre: string;
   descripcion: string;
   categoria: string;
+  material_id?: number | null;
   precio: number | string;
   stock: number | string;
 }
@@ -79,13 +91,14 @@ export const AdminDashboardModal: React.FC = () => {
     triggerProductsRefresh
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'stats' | 'orders' | 'users' | 'products' | 'addProduct' | 'bulkAi'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'orders' | 'users' | 'products' | 'addProduct' | 'bulkAi' | 'materials'>('stats');
 
   // Estados de datos
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
+  const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -117,6 +130,7 @@ export const AdminDashboardModal: React.FC = () => {
   const [editProdPrecio, setEditProdPrecio] = useState('');
   const [editProdStock, setEditProdStock] = useState('10');
   const [editProdCategoria, setEditProdCategoria] = useState('Pulseras');
+  const [editProdMaterialId, setEditProdMaterialId] = useState<string>('');
   const [editProdImagen, setEditProdImagen] = useState('/assets/im1.jpeg');
   const [editProdDescripcion, setEditProdDescripcion] = useState('');
   const [editProdActivo, setEditProdActivo] = useState(true);
@@ -126,6 +140,7 @@ export const AdminDashboardModal: React.FC = () => {
   const [prodPrecio, setProdPrecio] = useState('');
   const [prodStock, setProdStock] = useState('15');
   const [prodCategoria, setProdCategoria] = useState('Pulseras');
+  const [prodMaterialId, setProdMaterialId] = useState<string>('');
   const [prodImagen, setProdImagen] = useState('/assets/im1.jpeg');
   const [prodDescripcion, setProdDescripcion] = useState('');
   const [savingProduct, setSavingProduct] = useState(false);
@@ -138,6 +153,16 @@ export const AdminDashboardModal: React.FC = () => {
 
   // Estado para autocompletar con IA en carga individual
   const [analyzingSingleAI, setAnalyzingSingleAI] = useState(false);
+
+  // =========================================================================
+  // ESTADOS PARA GESTIÓN DE MATERIALES (CRUD)
+  // =========================================================================
+  const [newMaterialName, setNewMaterialName] = useState('');
+  const [savingMaterial, setSavingMaterial] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
+  const [showEditMaterialModal, setShowEditMaterialModal] = useState(false);
+  const [editMaterialName, setEditMaterialName] = useState('');
+  const [editMaterialActivo, setEditMaterialActivo] = useState(true);
 
   // =========================================================================
   // ESTADOS Y REFERENCIAS PARA CARGA MASIVA CON INTELIGENCIA ARTIFICIAL
@@ -505,6 +530,15 @@ export const AdminDashboardModal: React.FC = () => {
         const data = await productsRes.json();
         setProducts(data.products || []);
       }
+
+      // 5. Cargar Materiales para selección dinámica en formularios
+      const materialsRes = await fetch(`${API_BASE_URL}/admin/materials`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (materialsRes.ok) {
+        const data = await materialsRes.json();
+        setMaterials(data.materials || []);
+      }
     } catch (err: any) {
       console.warn('Error al cargar datos del panel de administración:', err);
     } finally {
@@ -589,6 +623,7 @@ export const AdminDashboardModal: React.FC = () => {
           precio: Number(prodPrecio),
           stock: Number(prodStock) || 10,
           categoria: prodCategoria,
+          material_id: prodMaterialId ? Number(prodMaterialId) : null,
           imagen: finalImagenUrl
         })
       });
@@ -603,6 +638,7 @@ export const AdminDashboardModal: React.FC = () => {
         setProdPrecio('');
         setProdDescripcion('');
         setProdStock('15');
+        setProdMaterialId('');
         handleRemoveImage();
         triggerProductsRefresh();
         fetchAdminData();
@@ -721,6 +757,7 @@ export const AdminDashboardModal: React.FC = () => {
     setEditProdPrecio(String(prod.precio || 0));
     setEditProdStock(String(prod.stock || 0));
     setEditProdCategoria(prod.categoria || 'Pulseras');
+    setEditProdMaterialId(prod.material_id ? String(prod.material_id) : '');
     setEditProdImagen(prod.imagen || '/assets/im1.jpeg');
     setEditProdDescripcion(prod.descripcion || '');
     setEditProdActivo(Boolean(prod.activo));
@@ -752,6 +789,7 @@ export const AdminDashboardModal: React.FC = () => {
           precio: Number(editProdPrecio),
           stock: Number(editProdStock) || 0,
           categoria: editProdCategoria,
+          material_id: editProdMaterialId ? Number(editProdMaterialId) : null,
           imagen: editProdImagen,
           activo: editProdActivo
         })
@@ -808,6 +846,125 @@ export const AdminDashboardModal: React.FC = () => {
     }
   };
 
+  // =========================================================================
+  // GESTIÓN DE MATERIALES (CRUD)
+  // =========================================================================
+
+  const handleCreateMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMaterialName.trim() || !token) return;
+
+    try {
+      setSavingMaterial(true);
+      setErrorMsg(null);
+
+      const res = await fetch(`${API_BASE_URL}/admin/materials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ nombre: newMaterialName.trim() })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al crear el material.');
+      }
+
+      setMaterials(prev => [...prev, data.material]);
+      setNewMaterialName('');
+      setSuccessMsg(`¡Material "${data.material.nombre}" creado con éxito!`);
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'No se pudo crear el material.');
+    } finally {
+      setSavingMaterial(false);
+    }
+  };
+
+  const handleOpenEditMaterial = (mat: MaterialItem) => {
+    setEditingMaterial(mat);
+    setEditMaterialName(mat.nombre);
+    setEditMaterialActivo(Boolean(mat.activo));
+    setShowEditMaterialModal(true);
+  };
+
+  const handleSaveEditMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMaterial || !token) return;
+
+    if (!editMaterialName.trim()) {
+      setErrorMsg('El nombre del material no puede estar vacío.');
+      return;
+    }
+
+    try {
+      setSavingMaterial(true);
+      setErrorMsg(null);
+
+      const res = await fetch(`${API_BASE_URL}/admin/materials/${editingMaterial.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nombre: editMaterialName.trim(),
+          activo: editMaterialActivo
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al actualizar el material.');
+      }
+
+      setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? data.material : m));
+      setShowEditMaterialModal(false);
+      setSuccessMsg(`¡Material "${editMaterialName}" actualizado con éxito!`);
+      triggerProductsRefresh();
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'No se pudo actualizar el material.');
+    } finally {
+      setSavingMaterial(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: number, materialName: string) => {
+    if (!token) return;
+
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas eliminar el material "${materialName}"?\n\nLos productos que lo usen quedarán sin material asignado.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setErrorMsg(null);
+      const res = await fetch(`${API_BASE_URL}/admin/materials/${materialId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al eliminar el material.');
+      }
+
+      setMaterials(prev => prev.filter(m => m.id !== materialId));
+      setSuccessMsg(`Material "${materialName}" eliminado.`);
+      triggerProductsRefresh();
+      fetchAdminData();
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'No se pudo eliminar el material.');
+    }
+  };
+
   // Filtros
   const filteredUsers = users.filter((u) => {
     const term = userSearchTerm.toLowerCase();
@@ -824,6 +981,7 @@ export const AdminDashboardModal: React.FC = () => {
     return (
       (p.nombre && p.nombre.toLowerCase().includes(term)) ||
       (p.categoria && p.categoria.toLowerCase().includes(term)) ||
+      (p.material_nombre && p.material_nombre.toLowerCase().includes(term)) ||
       (p.descripcion && p.descripcion.toLowerCase().includes(term))
     );
   });
@@ -951,6 +1109,18 @@ export const AdminDashboardModal: React.FC = () => {
                       {bulkQueue.length}
                     </Badge>
                   )}
+                </span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link
+                active={activeTab === 'materials'}
+                onClick={() => setActiveTab('materials')}
+                className="admin-tab-link"
+              >
+                <span className="d-inline-flex align-items-center gap-1">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                  Materiales ({materials.length})
                 </span>
               </Nav.Link>
             </Nav.Item>
@@ -1532,6 +1702,9 @@ export const AdminDashboardModal: React.FC = () => {
                                     <div className="fw-bold fs-6 mb-1 text-dark text-truncate">{p.nombre}</div>
                                     <div className="d-flex gap-1 flex-wrap mb-1">
                                       <Badge bg="light" text="dark" className="border">{p.categoria || 'Pulseras'}</Badge>
+                                      {p.material_nombre && (
+                                        <Badge bg="info" text="white">{p.material_nombre}</Badge>
+                                      )}
                                       {Boolean(p.activo) ? (
                                         <Badge bg="success">Activo</Badge>
                                       ) : (
@@ -1638,6 +1811,23 @@ export const AdminDashboardModal: React.FC = () => {
                             <option value="Tobilleras">Tobilleras</option>
                             <option value="Anillos">Anillos</option>
                           </Form.Select>
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                          <Form.Label className="auth-label">Material</Form.Label>
+                          <Form.Select
+                            value={prodMaterialId}
+                            onChange={(e) => setProdMaterialId(e.target.value)}
+                            className="form-control-custom"
+                          >
+                            <option value="">— Sin material —</option>
+                            {materials.filter(m => m.activo).map(m => (
+                              <option key={m.id} value={String(m.id)}>{m.nombre}</option>
+                            ))}
+                          </Form.Select>
+                          <Form.Text className="text-muted small">
+                            De qué está hecho (Macramé, Cristales, etc.). Podés gestionar materiales desde la pestaña "Materiales".
+                          </Form.Text>
                         </Form.Group>
 
                         <Form.Group className="mb-3">
@@ -1965,6 +2155,108 @@ export const AdminDashboardModal: React.FC = () => {
                   )}
                 </div>
               )}
+
+              {/* TAB 7: GESTIÓN DE MATERIALES */}
+              {activeTab === 'materials' && (
+                <div>
+                  <Card className="border-0 shadow-sm p-3 p-md-4 mb-4">
+                    <h5 className="fw-bold mb-3" style={{ color: 'var(--color-azul-profundo)' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                      Gestionar Materiales
+                    </h5>
+                    <p className="text-muted small mb-3">
+                      Agregá, editá o eliminá los materiales de los que están hechos los accesorios. Estos materiales aparecen como filtros en el catálogo público y como opciones al cargar un producto.
+                    </p>
+
+                    {/* Formulario para agregar nuevo material */}
+                    <Form onSubmit={handleCreateMaterial} className="d-flex gap-2 mb-4">
+                      <Form.Control
+                        type="text"
+                        placeholder="Nombre del nuevo material (ej: Hilo Encerado, Metal, Perlas...)"
+                        value={newMaterialName}
+                        onChange={(e) => setNewMaterialName(e.target.value)}
+                        className="form-control-custom"
+                        required
+                      />
+                      <Button
+                        type="submit"
+                        className="btn-custom-primary d-flex align-items-center gap-1 flex-shrink-0"
+                        disabled={savingMaterial || !newMaterialName.trim()}
+                      >
+                        {savingMaterial ? (
+                          <Spinner animation="border" size="sm" />
+                        ) : (
+                          <>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Agregar
+                          </>
+                        )}
+                      </Button>
+                    </Form>
+
+                    {/* Tabla de materiales existentes */}
+                    {materials.length > 0 ? (
+                      <Table hover responsive className="align-middle">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Nombre</th>
+                            <th>Slug (filtro)</th>
+                            <th className="text-center">Estado</th>
+                            <th className="text-center">Productos</th>
+                            <th className="text-center">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {materials.map((mat) => {
+                            const productCount = products.filter(p => p.material_id === mat.id).length;
+                            return (
+                              <tr key={mat.id}>
+                                <td className="fw-semibold">{mat.nombre}</td>
+                                <td><code className="text-muted">{mat.slug}</code></td>
+                                <td className="text-center">
+                                  {mat.activo ? (
+                                    <Badge bg="success" className="px-2">Activo</Badge>
+                                  ) : (
+                                    <Badge bg="secondary" className="px-2">Inactivo</Badge>
+                                  )}
+                                </td>
+                                <td className="text-center">
+                                  <Badge bg="light" text="dark" className="border">{productCount}</Badge>
+                                </td>
+                                <td className="text-center">
+                                  <div className="d-flex gap-1 justify-content-center">
+                                    <Button
+                                      variant="outline-primary"
+                                      size="sm"
+                                      onClick={() => handleOpenEditMaterial(mat)}
+                                      title="Editar material"
+                                    >
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    </Button>
+                                    <Button
+                                      variant="outline-danger"
+                                      size="sm"
+                                      onClick={() => handleDeleteMaterial(mat.id, mat.nombre)}
+                                      title="Eliminar material"
+                                    >
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-4 text-muted">
+                        <p className="mb-1 fw-semibold">No hay materiales registrados todavía.</p>
+                        <p className="small">Usá el campo de arriba para agregar el primer material (ej: Macramé, Cristales, Mostacillas).</p>
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              )}
             </>
           )}
         </Modal.Body>
@@ -2032,6 +2324,20 @@ export const AdminDashboardModal: React.FC = () => {
                 <option value="Aros">Aros</option>
                 <option value="Tobilleras">Tobilleras</option>
                 <option value="Anillos">Anillos</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="auth-label">Material</Form.Label>
+              <Form.Select
+                value={editProdMaterialId}
+                onChange={(e) => setEditProdMaterialId(e.target.value)}
+                className="form-control-custom"
+              >
+                <option value="">— Sin material —</option>
+                {materials.filter(m => m.activo).map(m => (
+                  <option key={m.id} value={String(m.id)}>{m.nombre}</option>
+                ))}
               </Form.Select>
             </Form.Group>
 
@@ -2195,6 +2501,70 @@ export const AdminDashboardModal: React.FC = () => {
                 <>
                   <Spinner animation="border" size="sm" className="me-2" />
                   Guardando Cambios...
+                </>
+              ) : (
+                'Guardar Cambios'
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* MODAL PARA EDITAR MATERIAL */}
+      {/* ========================================================================= */}
+      <Modal
+        show={showEditMaterialModal}
+        onHide={() => setShowEditMaterialModal(false)}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold fs-5" style={{ color: 'var(--color-principal)' }}>
+            ✏️ Editar Material
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSaveEditMaterial}>
+          <Modal.Body className="pt-3">
+            <Form.Group className="mb-3">
+              <Form.Label className="auth-label">Nombre del Material</Form.Label>
+              <Form.Control
+                type="text"
+                value={editMaterialName}
+                onChange={(e) => setEditMaterialName(e.target.value)}
+                className="form-control-custom"
+                required
+                placeholder="Ej: Macramé, Cristales, Perlas..."
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="switch"
+                id="edit-material-activo"
+                label={editMaterialActivo ? 'Activo (visible en filtros y formularios)' : 'Inactivo (oculto en filtros y formularios)'}
+                checked={editMaterialActivo}
+                onChange={(e) => setEditMaterialActivo(e.target.checked)}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="border-0 pt-0">
+            <Button
+              variant="outline-secondary"
+              onClick={() => setShowEditMaterialModal(false)}
+              disabled={savingMaterial}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              className="btn-custom-primary px-4"
+              disabled={savingMaterial}
+            >
+              {savingMaterial ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Guardando...
                 </>
               ) : (
                 'Guardar Cambios'

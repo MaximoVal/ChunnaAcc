@@ -36,6 +36,7 @@ export interface AIProductAnalysis {
   nombre: string;
   descripcion: string;
   categoria: 'Pulseras' | 'Collares' | 'Tobilleras' | 'Aros' | 'Sets y Combos';
+  material?: string;
   precio: number;
   stock: number;
 }
@@ -108,10 +109,18 @@ function generateFallbackAnalysis(imageFileName: string): AIProductAnalysis {
 
   const itemInfo = descripcionesPorCategoria[categoria] || descripcionesPorCategoria['Pulseras'];
 
+  let material = 'Macramé';
+  if (lower.includes('mostacilla')) material = 'Mostacillas';
+  else if (lower.includes('cristal')) material = 'Cristales';
+  else if (lower.includes('piedra')) material = 'Piedras naturales';
+  else if (lower.includes('metal') || lower.includes('dije')) material = 'Metal';
+  else if (lower.includes('hilo')) material = 'Hilo encerado';
+
   return {
     nombre: baseTitle,
     descripcion: itemInfo.desc,
     categoria,
+    material,
     precio: itemInfo.precio,
     stock: 12
   };
@@ -163,6 +172,7 @@ Reglas de respuesta:
 - Nombre: Título comercial conciso, elegante y atractivo en español (máx. 7 palabras). Ej: "Pulsera Macramé con Ojo de Tigre", "Collar Choker con Cristales Rosa".
 - Descripción: 2 a 3 oraciones bien redactadas, cautivadoras y honestas con lo que se aprecia en la foto.
 - Categoría: DEBE ser EXACTAMENTE una de estas opciones: 'Pulseras' | 'Collares' | 'Tobilleras' | 'Aros' | 'Sets y Combos'.
+- Material: Sugiere el material principal del accesorio. Elige UNA opción de esta lista si es posible: 'Macramé', 'Mostacillas', 'Cristales', 'Hilo encerado', 'Piedras naturales', 'Metal'. Si no aplica ninguna, usa otra palabra que describa el material principal.
 - Precio: Un precio sugerido realista en pesos argentinos (número entero entre 2000 y 9000).
 - Stock: Un número entero recomendado (ej: 10 o 15).
 
@@ -171,6 +181,7 @@ Responde ÚNICAMENTE con un JSON válido sin markdown ni texto adicional:
   "nombre": "...",
   "descripcion": "...",
   "categoria": "Pulseras",
+  "material": "Macramé",
   "precio": 3500,
   "stock": 15
 }
@@ -228,6 +239,7 @@ Responde ÚNICAMENTE con un JSON válido sin markdown ni texto adicional:
       nombre: String(parsedData.nombre || 'Accesorio Artesanal Hecho a Mano').trim(),
       descripcion: String(parsedData.descripcion || 'Diseño exclusivo artesanal confeccionado a mano con materiales de primera calidad.').trim(),
       categoria: finalCategory as any,
+      material: parsedData.material ? String(parsedData.material).trim() : 'Macramé',
       precio: Number(parsedData.precio) > 0 ? Number(parsedData.precio) : 3500,
       stock: Number(parsedData.stock) > 0 ? Number(parsedData.stock) : 10
     };

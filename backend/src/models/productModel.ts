@@ -9,13 +9,15 @@ export interface ProductAttributes {
   stock: number;
   imagen?: string | null;
   categoria: string;
+  material_id?: number | null;
+  material_nombre?: string;
   activo: boolean | number;
   created_at?: Date;
   updated_at?: Date;
 }
 
 export interface ProductCreationAttributes
-  extends Optional<ProductAttributes, 'id' | 'descripcion' | 'imagen' | 'categoria' | 'activo' | 'created_at' | 'updated_at'> {}
+  extends Optional<ProductAttributes, 'id' | 'descripcion' | 'imagen' | 'categoria' | 'material_id' | 'activo' | 'created_at' | 'updated_at'> {}
 
 export class Product extends Model<ProductAttributes, ProductCreationAttributes> implements ProductAttributes {
   declare id: number;
@@ -25,6 +27,7 @@ export class Product extends Model<ProductAttributes, ProductCreationAttributes>
   declare stock: number;
   declare imagen: string | null;
   declare categoria: string;
+  declare material_id: number | null;
   declare activo: boolean | number;
   declare readonly created_at: Date;
   declare readonly updated_at: Date;
@@ -69,6 +72,15 @@ Product.init(
       allowNull: false,
       defaultValue: 'Pulseras'
     },
+    material_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      defaultValue: null,
+      references: {
+        model: 'materials',
+        key: 'id'
+      }
+    },
     activo: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -84,6 +96,9 @@ Product.init(
   }
 );
 
+import { Material } from './materialModel.js';
+Product.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
+
 export const ProductModel = {
   /**
    * Obtener todos los productos activos
@@ -91,17 +106,33 @@ export const ProductModel = {
   async findAll(): Promise<ProductAttributes[]> {
     const products = await Product.findAll({
       where: { activo: true },
-      order: [['id', 'DESC']]
+      order: [['id', 'DESC']],
+      include: [{ model: Material, as: 'material', attributes: ['nombre'] }]
     });
-    return products.map((p) => p.get({ plain: true }) as ProductAttributes);
+    return products.map((p) => {
+      const plain = p.get({ plain: true }) as any;
+      if (plain.material) {
+        plain.material_nombre = plain.material.nombre;
+        delete plain.material;
+      }
+      return plain as ProductAttributes;
+    });
   },
 
   /**
    * Obtener un producto por ID
    */
   async findById(id: number): Promise<ProductAttributes | null> {
-    const product = await Product.findByPk(id);
-    return product ? (product.get({ plain: true }) as ProductAttributes) : null;
+    const product = await Product.findByPk(id, {
+      include: [{ model: Material, as: 'material', attributes: ['nombre'] }]
+    });
+    if (!product) return null;
+    const plain = product.get({ plain: true }) as any;
+    if (plain.material) {
+      plain.material_nombre = plain.material.nombre;
+      delete plain.material;
+    }
+    return plain as ProductAttributes;
   },
 
   /**
@@ -114,6 +145,7 @@ export const ProductModel = {
     stock: number;
     imagen?: string | null;
     categoria?: string;
+    material_id?: number | null;
     activo?: boolean | number;
   }): Promise<number> {
     const created = await Product.create({
@@ -123,6 +155,7 @@ export const ProductModel = {
       stock: data.stock,
       imagen: data.imagen || '/assets/im1.jpeg',
       categoria: data.categoria || 'Pulseras',
+      material_id: data.material_id || null,
       activo: data.activo !== undefined ? Boolean(data.activo) : true
     });
     return created.id;
@@ -139,6 +172,7 @@ export const ProductModel = {
       stock: number;
       imagen?: string | null;
       categoria?: string;
+      material_id?: number | null;
       activo?: boolean | number;
     }>
   ): Promise<number> {
@@ -151,6 +185,7 @@ export const ProductModel = {
       stock: p.stock || 10,
       imagen: p.imagen || '/assets/im1.jpeg',
       categoria: p.categoria || 'Pulseras',
+      material_id: p.material_id || null,
       activo: p.activo !== undefined ? Boolean(p.activo) : true
     }));
 
@@ -163,9 +198,17 @@ export const ProductModel = {
    */
   async findAllAdmin(): Promise<ProductAttributes[]> {
     const products = await Product.findAll({
-      order: [['id', 'DESC']]
+      order: [['id', 'DESC']],
+      include: [{ model: Material, as: 'material', attributes: ['nombre'] }]
     });
-    return products.map((p) => p.get({ plain: true }) as ProductAttributes);
+    return products.map((p) => {
+      const plain = p.get({ plain: true }) as any;
+      if (plain.material) {
+        plain.material_nombre = plain.material.nombre;
+        delete plain.material;
+      }
+      return plain as ProductAttributes;
+    });
   },
 
   /**
@@ -180,6 +223,7 @@ export const ProductModel = {
       stock?: number;
       imagen?: string | null;
       categoria?: string;
+      material_id?: number | null;
       activo?: boolean | number;
     }
   ): Promise<boolean> {
@@ -190,6 +234,7 @@ export const ProductModel = {
     if (data.stock !== undefined) updateData.stock = Number(data.stock);
     if (data.imagen !== undefined) updateData.imagen = String(data.imagen).trim();
     if (data.categoria !== undefined) updateData.categoria = String(data.categoria).trim();
+    if (data.material_id !== undefined) updateData.material_id = data.material_id;
     if (data.activo !== undefined) updateData.activo = Boolean(data.activo);
 
     const [affectedCount] = await Product.update(updateData, { where: { id } });

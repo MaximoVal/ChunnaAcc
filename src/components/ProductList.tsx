@@ -5,13 +5,19 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { API_BASE_URL, getImageUrl } from '../config/api';
 
+interface MaterialFilter {
+  id: number;
+  nombre: string;
+  slug: string;
+}
+
 const MOCK_PRODUCTS: Product[] = [
-  { id: 1, nombre: 'Pulsera Hilo Encerado Rust', precio: 1200, imagen: '/assets/im1.jpeg', categoria: 'macrame', descripcion: 'Diseño clásico en tonos terracota tejido a mano, ideal para combinar a diario.' },
-  { id: 2, nombre: 'Pulsera Cristal Boho', precio: 1500, imagen: '/assets/im2.jpeg', categoria: 'cristales', descripcion: 'Delicada combinación de cristales brillosos y mostacillas seleccionadas.' },
-  { id: 3, nombre: 'Pulsera Macramé Tierra', precio: 1800, imagen: '/assets/im3.jpeg', categoria: 'macrame', descripcion: 'Estilo rústico con trenzado artesanal firme y de gran durabilidad con detalles de dijes metálicos.' },
-  { id: 4, nombre: 'Pulsera Cuentas de la Selva', precio: 2200, imagen: '/assets/im4.jpeg', categoria: 'mostacillas', descripcion: 'Contiene aros y cuentas de colores vibrantes inspirados en la naturaleza.' },
-  { id: 5, nombre: 'Pulsera Multi-Hebra Sunset', precio: 1900, imagen: '/assets/im5.jpeg', categoria: 'macrame', descripcion: 'Varias hebras tejidas en colores cálidos del atardecer con broche regulable.' },
-  { id: 6, nombre: 'Pulsera Protección Ojo Turco', precio: 1600, imagen: '/assets/im6.jpeg', categoria: 'mostacillas', descripcion: 'Fina pulsera con ojo turco de vidrio y cuentas celestes protectoras.' }
+  { id: 1, nombre: 'Pulsera Hilo Encerado Rust', precio: 1200, imagen: '/assets/im1.jpeg', categoria: 'macrame', descripcion: 'Diseño clásico en tonos terracota tejido a mano, ideal para combinar a diario.', material_nombre: 'Macramé' },
+  { id: 2, nombre: 'Pulsera Cristal Boho', precio: 1500, imagen: '/assets/im2.jpeg', categoria: 'cristales', descripcion: 'Delicada combinación de cristales brillosos y mostacillas seleccionadas.', material_nombre: 'Cristales' },
+  { id: 3, nombre: 'Pulsera Macramé Tierra', precio: 1800, imagen: '/assets/im3.jpeg', categoria: 'macrame', descripcion: 'Estilo rústico con trenzado artesanal firme y de gran durabilidad con detalles de dijes metálicos.', material_nombre: 'Macramé' },
+  { id: 4, nombre: 'Pulsera Cuentas de la Selva', precio: 2200, imagen: '/assets/im4.jpeg', categoria: 'mostacillas', descripcion: 'Contiene aros y cuentas de colores vibrantes inspirados en la naturaleza.', material_nombre: 'Mostacillas' },
+  { id: 5, nombre: 'Pulsera Multi-Hebra Sunset', precio: 1900, imagen: '/assets/im5.jpeg', categoria: 'macrame', descripcion: 'Varias hebras tejidas en colores cálidos del atardecer con broche regulable.', material_nombre: 'Macramé' },
+  { id: 6, nombre: 'Pulsera Protección Ojo Turco', precio: 1600, imagen: '/assets/im6.jpeg', categoria: 'mostacillas', descripcion: 'Fina pulsera con ojo turco de vidrio y cuentas celestes protectoras.', material_nombre: 'Mostacillas' }
 ];
 
 export const ProductList: React.FC = () => {
@@ -23,26 +29,29 @@ export const ProductList: React.FC = () => {
 
   // Estados para búsqueda y filtrado
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('todos');
+
+  // Lista dinámica de materiales desde la API
+  const [materials, setMaterials] = useState<MaterialFilter[]>([]);
 
   // Estados para Modal de Detalle
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
   const [detailQuantity, setDetailQuantity] = useState<number>(1);
 
-  const determineCategory = (p: any): string => {
-    const cat = (p.categoria || '').toString().toLowerCase().trim();
-    if (cat === 'macrame' || cat === 'mostacillas' || cat === 'cristales') {
-      return cat;
+  // Obtener materiales dinámicamente desde la API
+  const fetchMaterials = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/materials`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.materials && Array.isArray(data.materials)) {
+          setMaterials(data.materials);
+        }
+      }
+    } catch (err) {
+      console.warn('No se pudieron cargar los materiales desde el backend.');
     }
-    const text = `${p.nombre || ''} ${p.descripcion || ''}`.toLowerCase();
-    if (text.includes('cristal')) return 'cristales';
-    if (text.includes('mostacilla') || text.includes('cuentas') || text.includes('ojo turco') || text.includes('selva')) return 'mostacillas';
-    if (text.includes('macram') || text.includes('hilo') || text.includes('rust') || text.includes('sunset')) return 'macrame';
-    
-    if (p.id % 3 === 0) return 'cristales';
-    if (p.id % 2 === 0) return 'mostacillas';
-    return 'macrame';
   };
 
   const fetchProducts = async () => {
@@ -57,22 +66,23 @@ export const ProductList: React.FC = () => {
         const mappedProducts = data.products.map((p: any) => ({
           ...p,
           imagen: getImageUrl(p.imagen),
-          categoria: determineCategory(p)
+          material_nombre: p.material_nombre || p.categoria
         }));
         setProducts(mappedProducts);
         setError(null);
       } else {
-        setProducts(MOCK_PRODUCTS.map(p => ({ ...p, categoria: determineCategory(p) })));
+        setProducts(MOCK_PRODUCTS);
       }
     } catch (err: any) {
       console.warn('Backend de productos no disponible, usando catálogo de respaldo.');
-      setProducts(MOCK_PRODUCTS.map(p => ({ ...p, categoria: determineCategory(p) })));
+      setProducts(MOCK_PRODUCTS);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    fetchMaterials();
     fetchProducts();
   }, [productsRefreshTrigger]);
 
@@ -103,10 +113,10 @@ export const ProductList: React.FC = () => {
     const matchesSearch = product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (product.descripcion && product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const productCat = determineCategory(product);
-    const matchesCategory = selectedCategory === 'todos' || productCat === selectedCategory;
+    const matchesMaterial = selectedMaterial === 'todos' || 
+      (product.material_nombre || '').toLowerCase() === materials.find(m => m.slug === selectedMaterial)?.nombre.toLowerCase();
 
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesMaterial;
   });
 
   const formatPrice = (value: number) => {
@@ -146,15 +156,13 @@ export const ProductList: React.FC = () => {
           <div className="d-flex flex-wrap gap-2">
             {[
               { id: 'todos', label: 'Todos' },
-              { id: 'macrame', label: 'Macramé' },
-              { id: 'mostacillas', label: 'Mostacillas' },
-              { id: 'cristales', label: 'Cristales' }
+              ...materials.map(m => ({ id: m.slug, label: m.nombre }))
             ].map((cat) => (
               <Button
                 key={cat.id}
-                variant={selectedCategory === cat.id ? 'primary' : 'outline-primary'}
-                className={selectedCategory === cat.id ? 'btn-custom-primary' : 'btn-custom-secondary'}
-                onClick={() => setSelectedCategory(cat.id)}
+                variant={selectedMaterial === cat.id ? 'primary' : 'outline-primary'}
+                className={selectedMaterial === cat.id ? 'btn-custom-primary' : 'btn-custom-secondary'}
+                onClick={() => setSelectedMaterial(cat.id)}
                 size="sm"
               >
                 {cat.label}
@@ -247,7 +255,7 @@ export const ProductList: React.FC = () => {
                         letterSpacing: '1px'
                       }}
                     >
-                      {selectedProduct.categoria}
+                      {selectedProduct.material_nombre || selectedProduct.categoria}
                     </span>
                     <h3 className="fs-2 fw-bold mb-3" style={{ color: 'var(--color-principal)' }}>
                       {formatPrice(selectedProduct.precio)}

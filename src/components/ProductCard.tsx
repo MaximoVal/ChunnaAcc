@@ -8,6 +8,8 @@ export interface Product {
   imagen: string;
   categoria: string;
   descripcion?: string;
+  material_id?: number | null;
+  material_nombre?: string | null;
 }
 
 interface ProductCardProps {
@@ -60,7 +62,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
                 fontFamily: 'var(--font-body)'
               }}
             >
-              {product.categoria}
+              {product.material_nombre || product.categoria}
             </span>
           </div>
           <Card.Text className="text-muted small mb-3">
