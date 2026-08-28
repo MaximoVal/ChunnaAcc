@@ -127,35 +127,47 @@ function generateFallbackAnalysis(imageFileName: string): AIProductAnalysis {
 }
 
 /**
- * Función principal para analizar una imagen de producto utilizando IA (Google Gemini)
- * @param imagePath Ruta absoluta del archivo de imagen en el servidor
- * @param mimeType Tipo MIME de la imagen (ej: 'image/jpeg', 'image/png')
+ * Función auxiliar: convierte un Buffer de imagen (o ruta) en el formato inlineData
+ * requerido por la API de Google Gemini para procesar datos binarios.
  */
+function bufferToGenerativePart(bufferOrPath: Buffer | string, mimeType: string) {
+  const base64Data = Buffer.isBuffer(bufferOrPath)
+    ? bufferOrPath.toString('base64')
+    : Buffer.from(fs.readFileSync(bufferOrPath)).toString('base64');
+
+  return {
+    inlineData: {
+      data: base64Data,
+      mimeType
+    }
+  };
+}
+
 export async function analyzeProductImageWithAI(
-  imagePath: string,
-  mimeType: string
+  imageSource: Buffer | string,
+  mimeType: string,
+  originalFileName?: string
 ): Promise<AIProductAnalysis> {
   const apiKey = process.env.GEMINI_API_KEY;
+  const fileNameForFallback = originalFileName || (typeof imageSource === 'string' ? path.basename(imageSource) : 'accesorio.jpg');
 
   // 1. Si no hay API Key configurada en .env, avisamos en consola y usamos el generador de respaldo
   if (!apiKey || apiKey === 'tu_api_key_de_gemini' || apiKey.trim() === '') {
-    console.info('⚠️ [IA Service] GEMINI_API_KEY no configurada en backend/.env. Usando analizador de respaldo. (Configura tu API Key gratuita de Google AI Studio para análisis de visión real).');
-    return generateFallbackAnalysis(path.basename(imagePath));
+    console.info('⚠️ [IA Service] GEMINI_API_KEY no configurada en backend/.env. Usando analizador de respaldo.');
+    return generateFallbackAnalysis(fileNameForFallback);
   }
 
   try {
     // 2. Inicializamos el cliente de Google Generative AI
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Lista de modelos compatibles en orden de prioridad
-    // (Google AI Studio actualmente soporta la generación Gemini 3.7 y 3.5)
     const preferredModel = process.env.GEMINI_MODEL;
     const modelCandidates = preferredModel
       ? [preferredModel, 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-pro-latest']
       : ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-pro-latest'];
 
     // 3. Preparamos la imagen como buffer Base64
-    const imagePart = fileToGenerativePart(imagePath, mimeType);
+    const imagePart = bufferToGenerativePart(imageSource, mimeType);
 
     // 4. Prompt de alta fidelidad para catalogación precisa de accesorios
     const prompt = `
@@ -246,6 +258,6 @@ Responde ÚNICAMENTE con un JSON válido sin markdown ni texto adicional:
   } catch (error: any) {
     console.warn('⚠️ [IA Service] Error o límite al consultar Gemini API:', error.message);
     console.info('👉 Activando analizador de respaldo para mantener la continuidad del servicio.');
-    return generateFallbackAnalysis(path.basename(imagePath));
+    return generateFallbackAnalysis(fileNameForFallback);
   }
 }

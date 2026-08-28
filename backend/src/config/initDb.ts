@@ -19,7 +19,7 @@ export const initDb = async () => {
     console.warn('   (Las tablas existentes seguirán operativas)');
   }
 
-  // 1.5 Asegurar que la columna material_id y la tabla product_materials existan
+  // 1.5 Asegurar que la columna material_id, imagen LONGTEXT y la tabla product_materials existan
   try {
     const [columnsResult]: any = await sequelize.query(`
       SELECT COLUMN_NAME 
@@ -34,6 +34,12 @@ export const initDb = async () => {
       `);
       console.log('✅ [INIT DB] Columna "material_id" agregada dinámicamente a la tabla products.');
     }
+
+    // Asegurar que la columna imagen en products sea LONGTEXT para soportar Data URIs Base64 persistentes
+    await sequelize.query(`
+      ALTER TABLE products MODIFY COLUMN imagen LONGTEXT;
+    `);
+    console.log('✅ [INIT DB] Columna "imagen" asegurada como LONGTEXT en la tabla products.');
 
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS product_materials (

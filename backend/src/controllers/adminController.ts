@@ -402,11 +402,16 @@ export const analyzeProductImage = async (req: AuthRequest, res: Response): Prom
       return;
     }
 
-    // Ejecutamos el análisis con Google Gemini Multimodal
-    const analysis = await analyzeProductImageWithAI(req.file.path, req.file.mimetype);
+    // Ejecutamos el análisis con Google Gemini Multimodal pasando el buffer en memoria
+    const analysis = await analyzeProductImageWithAI(
+      req.file.buffer,
+      req.file.mimetype,
+      req.file.originalname
+    );
 
-    // Resolvemos la URL accesible públicamente para el frontend
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // Convertir a Data URI Base64 persistente para guardar en la base de datos de MySQL
+    const base64Data = req.file.buffer.toString('base64');
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
     res.status(200).json({
       success: true,

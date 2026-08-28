@@ -40,7 +40,7 @@ router.post('/products', createAdminProduct);
 router.put('/products/:id', updateAdminProduct);
 router.delete('/products/:id', deleteAdminProduct);
 
-// 5. Subida de imágenes de productos
+// 5. Subida de imágenes de productos (Convertidas a Data URI Base64 para persistencia total en MySQL/Render)
 router.post('/upload', (req, res) => {
   upload.single('image')(req, res, (err) => {
     if (err) {
@@ -50,8 +50,10 @@ router.post('/upload', (req, res) => {
       return res.status(400).json({ success: false, message: 'No se ha proporcionado ninguna imagen.' });
     }
     
-    // Generar la URL completa resolviendo el host de la petición
-    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // Convertir el buffer en memoria a Data URI Base64 persistente
+    const base64Data = req.file.buffer.toString('base64');
+    const fileUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+    
     res.status(200).json({
       success: true,
       url: fileUrl

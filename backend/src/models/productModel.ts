@@ -69,7 +69,7 @@ Product.init(
       defaultValue: 0
     },
     imagen: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.TEXT('long'),
       allowNull: true,
       defaultValue: '/assets/im1.jpeg'
     },

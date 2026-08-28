@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Spinner, Alert, Form, InputGroup, Button, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Spinner, Alert, Form, InputGroup, Button, Modal, Card } from 'react-bootstrap';
 import ProductCard, { Product } from './ProductCard';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -29,6 +29,7 @@ export const ProductList: React.FC = () => {
 
   // Estados para búsqueda y filtrado
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [selectedMaterial, setSelectedMaterial] = useState<string>('todos');
 
   // Lista dinámica de materiales desde la API
@@ -108,10 +109,13 @@ export const ProductList: React.FC = () => {
     }
   };
 
-  // Lógica de búsqueda y filtrado combinado
+  // Lógica de búsqueda y filtrado combinado (Búsqueda + Tipo de Accesorio + Material)
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (product.descripcion && product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesCategory = selectedCategory === 'todos' ||
+      (product.categoria || '').toLowerCase() === selectedCategory.toLowerCase();
     
     const selectedMatObj = materials.find(m => m.slug === selectedMaterial);
     const targetSlug = selectedMaterial.toLowerCase();
@@ -121,7 +125,7 @@ export const ProductList: React.FC = () => {
       (product.materials && product.materials.some(m => m.slug === targetSlug || m.nombre.toLowerCase() === targetName)) ||
       ((product.material_nombre || '').toLowerCase() === targetName);
 
-    return matchesSearch && matchesMaterial;
+    return matchesSearch && matchesCategory && matchesMaterial;
   });
 
   const formatPrice = (value: number) => {
@@ -155,45 +159,79 @@ export const ProductList: React.FC = () => {
       </div>
 
       {/* Barra de Filtros y Búsqueda */}
-      <Row className="mb-4 g-3 align-items-center justify-content-between">
-        {/* Filtros de Categoría */}
-        <Col md={7} lg={6}>
-          <div className="d-flex flex-wrap gap-2">
-            {[
-              { id: 'todos', label: 'Todos' },
-              ...materials.map(m => ({ id: m.slug, label: m.nombre }))
-            ].map((cat) => (
-              <Button
-                key={cat.id}
-                variant={selectedMaterial === cat.id ? 'primary' : 'outline-primary'}
-                className={selectedMaterial === cat.id ? 'btn-custom-primary' : 'btn-custom-secondary'}
-                onClick={() => setSelectedMaterial(cat.id)}
-                size="sm"
-              >
-                {cat.label}
-              </Button>
-            ))}
-          </div>
-        </Col>
+      <Card className="border-0 shadow-sm p-3 p-md-4 mb-4 bg-white rounded-3">
+        <Row className="g-3 align-items-center">
+          {/* Buscador */}
+          <Col md={12} lg={4}>
+            <Form.Label className="fw-semibold small text-muted mb-1 d-block">Buscar por nombre o descripción</Form.Label>
+            <InputGroup>
+              <InputGroup.Text id="search-icon" style={{ backgroundColor: 'transparent', borderRight: 'none', borderColor: 'var(--color-gris)' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </InputGroup.Text>
+              <Form.Control
+                placeholder="Ej: Pulsera, Cristal, Ojo Turco..."
+                aria-label="Buscar producto"
+                aria-describedby="search-icon"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ borderLeft: 'none', borderColor: 'var(--color-gris)' }}
+                className="shadow-none"
+              />
+            </InputGroup>
+          </Col>
 
-        {/* Buscador */}
-        <Col md={5} lg={4}>
-          <InputGroup>
-            <InputGroup.Text id="search-icon" style={{ backgroundColor: 'transparent', borderRight: 'none', borderColor: 'var(--color-gris)' }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </InputGroup.Text>
-            <Form.Control
-              placeholder="Buscar pulsera..."
-              aria-label="Buscar pulsera"
-              aria-describedby="search-icon"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderLeft: 'none', borderColor: 'var(--color-gris)' }}
-              className="shadow-none"
-            />
-          </InputGroup>
-        </Col>
-      </Row>
+          {/* Filtros de Tipo de Accesorio */}
+          <Col md={12} lg={8}>
+            <div className="mb-2">
+              <span className="fw-semibold small text-muted me-2">Tipo de Accesorio:</span>
+              <div className="d-inline-flex flex-wrap gap-1 mt-1">
+                {[
+                  { id: 'todos', label: 'Todos' },
+                  { id: 'pulseras', label: 'Pulseras' },
+                  { id: 'collares', label: 'Collares' },
+                  { id: 'aros', label: 'Aros' },
+                  { id: 'tobilleras', label: 'Tobilleras' },
+                  { id: 'anillos', label: 'Anillos' },
+                  { id: 'sets y combos', label: 'Sets y Combos' }
+                ].map((type) => (
+                  <Button
+                    key={type.id}
+                    variant={selectedCategory.toLowerCase() === type.id ? 'primary' : 'outline-secondary'}
+                    className={selectedCategory.toLowerCase() === type.id ? 'btn-custom-primary rounded-pill' : 'btn-custom-secondary rounded-pill'}
+                    onClick={() => setSelectedCategory(type.id)}
+                    size="sm"
+                    style={{ fontSize: '0.8rem', padding: '3px 12px' }}
+                  >
+                    {type.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filtros de Material */}
+            <div>
+              <span className="fw-semibold small text-muted me-2">Material:</span>
+              <div className="d-inline-flex flex-wrap gap-1 mt-1">
+                {[
+                  { id: 'todos', label: 'Todos' },
+                  ...materials.map(m => ({ id: m.slug, label: m.nombre }))
+                ].map((mat) => (
+                  <Button
+                    key={mat.id}
+                    variant={selectedMaterial === mat.id ? 'primary' : 'outline-secondary'}
+                    className={selectedMaterial === mat.id ? 'btn-custom-primary rounded-pill' : 'btn-custom-secondary rounded-pill'}
+                    onClick={() => setSelectedMaterial(mat.id)}
+                    size="sm"
+                    style={{ fontSize: '0.8rem', padding: '3px 12px' }}
+                  >
+                    {mat.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </Card>
 
       {error && (
         <Alert variant="warning" className="text-center col-md-8 mx-auto mb-4">
