@@ -19,7 +19,7 @@ export const initDb = async () => {
     console.warn('   (Las tablas existentes seguirán operativas)');
   }
 
-  // 1.5 Asegurar que la columna material_id exista en la tabla products si la tabla ya existía
+  // 1.5 Asegurar que la columna material_id y la tabla product_materials existan
   try {
     const [columnsResult]: any = await sequelize.query(`
       SELECT COLUMN_NAME 
@@ -34,8 +34,18 @@ export const initDb = async () => {
       `);
       console.log('✅ [INIT DB] Columna "material_id" agregada dinámicamente a la tabla products.');
     }
+
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS product_materials (
+        product_id INT UNSIGNED NOT NULL,
+        material_id INT UNSIGNED NOT NULL,
+        PRIMARY KEY (product_id, material_id),
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE ON UPDATE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
   } catch (colErr: any) {
-    console.warn('⚠️ [INIT DB] Nota sobre verificación de columna material_id:', colErr.message);
+    console.warn('⚠️ [INIT DB] Nota sobre verificación de estructura de materiales:', colErr.message);
   }
 
   // 2. Precargar / Sincronizar ÚNICA cuenta de Administrador: cunna.accs@gmail.com
@@ -95,17 +105,24 @@ export const initDb = async () => {
         { nombre: 'Cristales', slug: 'cristales' }
       ]);
       console.log('✅ [INIT DB] Materiales iniciales precargados con éxito.');
-      
-      // Migrate existing products
-      const materials = await Material.findAll();
-      for (const material of materials) {
-        await Product.update(
-          { material_id: material.id },
-          { where: { categoria: material.slug } }
-        );
-      }
-      console.log('✅ [INIT DB] Productos existentes migrados a material_id con éxito.');
     }
+
+    // Migrar productos existentes a la tabla intermedia product_materials
+    const materials = await Material.findAll();
+    for (const material of materials) {
+      await Product.update(
+        { material_id: material.id },
+        { where: { categoria: material.slug } }
+      );
+
+      const productsWithMaterial = await Product.findAll({ where: { material_id: material.id } });
+      for (const p of productsWithMaterial) {
+        await sequelize.query(`
+          INSERT IGNORE INTO product_materials (product_id, material_id) VALUES (${p.id}, ${material.id});
+        `);
+      }
+    }
+    console.log('✅ [INIT DB] Productos migrados a relación N:M de materiales con éxito.');
   } catch (materialError: any) {
     console.error('❌ [INIT DB] Error precargando o migrando materiales:', materialError.message);
   }

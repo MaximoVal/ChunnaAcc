@@ -113,8 +113,13 @@ export const ProductList: React.FC = () => {
     const matchesSearch = product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (product.descripcion && product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesMaterial = selectedMaterial === 'todos' || 
-      (product.material_nombre || '').toLowerCase() === materials.find(m => m.slug === selectedMaterial)?.nombre.toLowerCase();
+    const selectedMatObj = materials.find(m => m.slug === selectedMaterial);
+    const targetSlug = selectedMaterial.toLowerCase();
+    const targetName = selectedMatObj?.nombre.toLowerCase();
+
+    const matchesMaterial = selectedMaterial === 'todos' ||
+      (product.materials && product.materials.some(m => m.slug === targetSlug || m.nombre.toLowerCase() === targetName)) ||
+      ((product.material_nombre || '').toLowerCase() === targetName);
 
     return matchesSearch && matchesMaterial;
   });
@@ -245,18 +250,38 @@ export const ProductList: React.FC = () => {
                 {/* Información del Producto */}
                 <Col md={6} className="d-flex flex-column justify-content-between">
                   <div>
-                    <span 
-                      className="badge rounded-pill mb-3 text-uppercase"
-                      style={{ 
-                        backgroundColor: 'var(--color-texto)', 
-                        color: 'var(--color-principal)',
-                        padding: '6px 12px',
-                        fontSize: '0.75rem',
-                        letterSpacing: '1px'
-                      }}
-                    >
-                      {selectedProduct.material_nombre || selectedProduct.categoria}
-                    </span>
+                    <div className="d-flex flex-wrap gap-1 mb-3">
+                      {selectedProduct.materials && selectedProduct.materials.length > 0 ? (
+                        selectedProduct.materials.map(m => (
+                          <span 
+                            key={m.id}
+                            className="badge rounded-pill text-uppercase"
+                            style={{ 
+                              backgroundColor: 'var(--color-texto)', 
+                              color: 'var(--color-principal)',
+                              padding: '6px 12px',
+                              fontSize: '0.75rem',
+                              letterSpacing: '1px'
+                            }}
+                          >
+                            {m.nombre}
+                          </span>
+                        ))
+                      ) : (
+                        <span 
+                          className="badge rounded-pill text-uppercase"
+                          style={{ 
+                            backgroundColor: 'var(--color-texto)', 
+                            color: 'var(--color-principal)',
+                            padding: '6px 12px',
+                            fontSize: '0.75rem',
+                            letterSpacing: '1px'
+                          }}
+                        >
+                          {selectedProduct.material_nombre || selectedProduct.categoria}
+                        </span>
+                      )}
+                    </div>
                     <h3 className="fs-2 fw-bold mb-3" style={{ color: 'var(--color-principal)' }}>
                       {formatPrice(selectedProduct.precio)}
                     </h3>

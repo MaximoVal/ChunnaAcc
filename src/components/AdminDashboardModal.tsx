@@ -49,6 +49,8 @@ export interface ProductItem {
   categoria: string;
   material_id?: number | null;
   material_nombre?: string | null;
+  materials?: MaterialItem[];
+  material_ids?: number[];
   activo: boolean | number;
   created_at?: string;
   updated_at?: string;
@@ -77,8 +79,18 @@ export interface BulkAIProductItem {
   descripcion: string;
   categoria: string;
   material_id?: number | null;
+  material_ids?: number[];
   precio: number | string;
   stock: number | string;
+}
+
+export interface ConfirmModalState {
+  show: boolean;
+  title: string;
+  message: string;
+  confirmBtnText?: string;
+  confirmVariant?: string;
+  onConfirm: () => void;
 }
 
 export const AdminDashboardModal: React.FC = () => {
@@ -102,6 +114,28 @@ export const AdminDashboardModal: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Modal de confirmación estilizado (reemplaza window.confirm)
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const showConfirmation = (title: string, message: string, onConfirm: () => void, confirmBtnText = 'Eliminar', confirmVariant = 'danger') => {
+    setConfirmModal({
+      show: true,
+      title,
+      message,
+      confirmBtnText,
+      confirmVariant,
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, show: false }));
+        onConfirm();
+      }
+    });
+  };
 
   // Filtros de búsqueda
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -131,6 +165,7 @@ export const AdminDashboardModal: React.FC = () => {
   const [editProdStock, setEditProdStock] = useState('10');
   const [editProdCategoria, setEditProdCategoria] = useState('Pulseras');
   const [editProdMaterialId, setEditProdMaterialId] = useState<string>('');
+  const [editProdMaterialIds, setEditProdMaterialIds] = useState<number[]>([]);
   const [editProdImagen, setEditProdImagen] = useState('/assets/im1.jpeg');
   const [editProdDescripcion, setEditProdDescripcion] = useState('');
   const [editProdActivo, setEditProdActivo] = useState(true);
@@ -141,6 +176,7 @@ export const AdminDashboardModal: React.FC = () => {
   const [prodStock, setProdStock] = useState('15');
   const [prodCategoria, setProdCategoria] = useState('Pulseras');
   const [prodMaterialId, setProdMaterialId] = useState<string>('');
+  const [prodMaterialIds, setProdMaterialIds] = useState<number[]>([]);
   const [prodImagen, setProdImagen] = useState('/assets/im1.jpeg');
   const [prodDescripcion, setProdDescripcion] = useState('');
   const [savingProduct, setSavingProduct] = useState(false);
@@ -623,7 +659,8 @@ export const AdminDashboardModal: React.FC = () => {
           precio: Number(prodPrecio),
           stock: Number(prodStock) || 10,
           categoria: prodCategoria,
-          material_id: prodMaterialId ? Number(prodMaterialId) : null,
+          material_id: prodMaterialIds.length > 0 ? prodMaterialIds[0] : (prodMaterialId ? Number(prodMaterialId) : null),
+          material_ids: prodMaterialIds,
           imagen: finalImagenUrl
         })
       });
@@ -639,6 +676,7 @@ export const AdminDashboardModal: React.FC = () => {
         setProdDescripcion('');
         setProdStock('15');
         setProdMaterialId('');
+        setProdMaterialIds([]);
         handleRemoveImage();
         triggerProductsRefresh();
         fetchAdminData();
@@ -654,14 +692,14 @@ export const AdminDashboardModal: React.FC = () => {
   // GESTIÓN Y ACCIONES DE CLIENTES (EDITAR Y ELIMINAR)
   // =========================================================================
 
-  const handleOpenEditUser = (client: User) => {
-    setEditingUser(client);
-    setEditUserName(client.name || '');
-    setEditUserEmail(client.email || '');
-    setEditUserPhone(client.phone || '');
-    setEditUserAddress(client.address || '');
-    setEditUserCity(client.city || '');
-    setEditUserNotes(client.notes || '');
+  const handleOpenEditUser = (u: User) => {
+    setEditingUser(u);
+    setEditUserName(u.name || '');
+    setEditUserEmail(u.email || '');
+    setEditUserPhone(u.phone || '');
+    setEditUserAddress(u.address || '');
+    setEditUserCity(u.city || '');
+    setEditUserNotes(u.notes || '');
     setShowEditUserModal(true);
   };
 
@@ -670,7 +708,7 @@ export const AdminDashboardModal: React.FC = () => {
     if (!editingUser || !token) return;
 
     if (!editUserName.trim() || !editUserEmail.trim()) {
-      setErrorMsg('El nombre y correo del cliente son obligatorios.');
+      setErrorMsg('El nombre y correo electrónico son obligatorios.');
       return;
     }
 
@@ -696,55 +734,56 @@ export const AdminDashboardModal: React.FC = () => {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Error al actualizar el cliente.');
+        throw new Error(data.message || 'Error al actualizar los datos del cliente.');
       }
 
       setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...data.user } : u));
       setShowEditUserModal(false);
-      setSuccessMsg(`¡Cliente "${editUserName}" actualizado correctamente!`);
+      setSuccessMsg(`Datos de "${editUserName}" actualizados con éxito.`);
       setTimeout(() => setSuccessMsg(null), 4000);
+      fetchAdminData();
     } catch (err: any) {
-      setErrorMsg(err.message || 'No se pudo actualizar el cliente.');
+      setErrorMsg(err.message || 'No se pudieron guardar los cambios del cliente.');
     } finally {
       setSavingUser(false);
     }
   };
 
-  const handleDeleteUser = async (userId: number, userName: string, userEmail: string) => {
+  const handleDeleteUser = (userId: number, userName: string, userEmail: string) => {
     if (!token) return;
 
     if (userEmail.toLowerCase() === 'cunna.accs@gmail.com') {
-      alert('Por seguridad no está permitido eliminar la cuenta del Administrador principal.');
+      setErrorMsg('Por seguridad no está permitido eliminar la cuenta del Administrador principal.');
       return;
     }
 
-    const confirmed = window.confirm(
-      `¿Estás seguro de que deseas eliminar permanentemente la cuenta de "${userName}" (${userEmail})?\n\nEsta acción no se puede deshacer.`
-    );
+    showConfirmation(
+      'Eliminar Cliente',
+      `¿Estás seguro de que deseas eliminar permanentemente la cuenta de "${userName}" (${userEmail})?\nEsta acción no se puede deshacer.`,
+      async () => {
+        try {
+          setErrorMsg(null);
+          const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
 
-    if (!confirmed) return;
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || 'Error al eliminar el cliente.');
+          }
 
-    try {
-      setErrorMsg(null);
-      const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
+          setUsers(prev => prev.filter(u => u.id !== userId));
+          setSuccessMsg(`Cuenta de "${userName}" eliminada correctamente.`);
+          setTimeout(() => setSuccessMsg(null), 4000);
+          fetchAdminData();
+        } catch (err: any) {
+          setErrorMsg(err.message || 'No se pudo eliminar el cliente.');
         }
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Error al eliminar el cliente.');
       }
-
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      setSuccessMsg(`Cuenta de "${userName}" eliminada correctamente.`);
-      setTimeout(() => setSuccessMsg(null), 4000);
-      fetchAdminData();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'No se pudo eliminar el cliente.');
-    }
+    );
   };
 
   // =========================================================================
@@ -758,6 +797,12 @@ export const AdminDashboardModal: React.FC = () => {
     setEditProdStock(String(prod.stock || 0));
     setEditProdCategoria(prod.categoria || 'Pulseras');
     setEditProdMaterialId(prod.material_id ? String(prod.material_id) : '');
+    
+    const existingMatIds = prod.materials && prod.materials.length > 0 
+      ? prod.materials.map(m => m.id)
+      : (prod.material_id ? [prod.material_id] : []);
+    setEditProdMaterialIds(existingMatIds);
+
     setEditProdImagen(prod.imagen || '/assets/im1.jpeg');
     setEditProdDescripcion(prod.descripcion || '');
     setEditProdActivo(Boolean(prod.activo));
@@ -789,7 +834,8 @@ export const AdminDashboardModal: React.FC = () => {
           precio: Number(editProdPrecio),
           stock: Number(editProdStock) || 0,
           categoria: editProdCategoria,
-          material_id: editProdMaterialId ? Number(editProdMaterialId) : null,
+          material_id: editProdMaterialIds.length > 0 ? editProdMaterialIds[0] : (editProdMaterialId ? Number(editProdMaterialId) : null),
+          material_ids: editProdMaterialIds,
           imagen: editProdImagen,
           activo: editProdActivo
         })
@@ -813,37 +859,37 @@ export const AdminDashboardModal: React.FC = () => {
     }
   };
 
-  const handleDeleteProduct = async (productId: number, productName: string) => {
+  const handleDeleteProduct = (productId: number, productName: string) => {
     if (!token) return;
 
-    const confirmed = window.confirm(
-      `¿Estás seguro de que deseas eliminar permanentemente el producto "${productName}" del catálogo?\n\nEsta acción no se puede deshacer.`
-    );
+    showConfirmation(
+      'Eliminar Producto',
+      `¿Estás seguro de que deseas eliminar permanentemente el producto "${productName}" del catálogo?\nEsta acción no se puede deshacer.`,
+      async () => {
+        try {
+          setErrorMsg(null);
+          const res = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
 
-    if (!confirmed) return;
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || 'Error al eliminar el producto.');
+          }
 
-    try {
-      setErrorMsg(null);
-      const res = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
+          setProducts(prev => prev.filter(p => p.id !== productId));
+          setSuccessMsg(`Producto "${productName}" eliminado del catálogo.`);
+          triggerProductsRefresh();
+          fetchAdminData();
+          setTimeout(() => setSuccessMsg(null), 4000);
+        } catch (err: any) {
+          setErrorMsg(err.message || 'No se pudo eliminar el producto.');
         }
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Error al eliminar el producto.');
       }
-
-      setProducts(prev => prev.filter(p => p.id !== productId));
-      setSuccessMsg(`Producto "${productName}" eliminado del catálogo.`);
-      triggerProductsRefresh();
-      fetchAdminData();
-      setTimeout(() => setSuccessMsg(null), 4000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'No se pudo eliminar el producto.');
-    }
+    );
   };
 
   // =========================================================================
@@ -943,37 +989,37 @@ export const AdminDashboardModal: React.FC = () => {
     }
   };
 
-  const handleDeleteMaterial = async (materialId: number, materialName: string) => {
+  const handleDeleteMaterial = (materialId: number, materialName: string) => {
     if (!token) return;
 
-    const confirmed = window.confirm(
-      `¿Estás seguro de que deseas eliminar el material "${materialName}"?\n\nLos productos que lo usen quedarán sin material asignado.`
-    );
+    showConfirmation(
+      'Eliminar Material',
+      `¿Estás seguro de que deseas eliminar el material "${materialName}"?\nLos productos que lo usen desvincularán este material.`,
+      async () => {
+        try {
+          setErrorMsg(null);
+          const res = await fetch(`${API_BASE_URL}/admin/materials/${materialId}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
 
-    if (!confirmed) return;
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || 'Error al eliminar el material.');
+          }
 
-    try {
-      setErrorMsg(null);
-      const res = await fetch(`${API_BASE_URL}/admin/materials/${materialId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
+          setMaterials(prev => prev.filter(m => m.id !== materialId));
+          setSuccessMsg(`Material "${materialName}" eliminado.`);
+          triggerProductsRefresh();
+          fetchAdminData();
+          setTimeout(() => setSuccessMsg(null), 4000);
+        } catch (err: any) {
+          setErrorMsg(err.message || 'No se pudo eliminar el material.');
         }
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Error al eliminar el material.');
       }
-
-      setMaterials(prev => prev.filter(m => m.id !== materialId));
-      setSuccessMsg(`Material "${materialName}" eliminado.`);
-      triggerProductsRefresh();
-      fetchAdminData();
-      setTimeout(() => setSuccessMsg(null), 4000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'No se pudo eliminar el material.');
-    }
+    );
   };
 
   // Filtros
@@ -1825,19 +1871,30 @@ export const AdminDashboardModal: React.FC = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                          <Form.Label className="auth-label">Material</Form.Label>
-                          <Form.Select
-                            value={prodMaterialId}
-                            onChange={(e) => setProdMaterialId(e.target.value)}
-                            className="form-control-custom"
-                          >
-                            <option value="">— Sin material —</option>
-                            {materials.filter(m => m.activo).map(m => (
-                              <option key={m.id} value={String(m.id)}>{m.nombre}</option>
-                            ))}
-                          </Form.Select>
-                          <Form.Text className="text-muted small">
-                            De qué está hecho (Macramé, Cristales, etc.). Podés gestionar materiales desde la pestaña "Materiales".
+                          <Form.Label className="auth-label d-block">Materiales (podés seleccionar más de uno)</Form.Label>
+                          <div className="d-flex flex-wrap gap-2 pt-1">
+                            {materials.filter(m => m.activo).map(m => {
+                              const isSelected = prodMaterialIds.includes(m.id);
+                              return (
+                                <Button
+                                  key={m.id}
+                                  type="button"
+                                  variant={isSelected ? 'primary' : 'outline-secondary'}
+                                  size="sm"
+                                  className={isSelected ? 'btn-custom-primary rounded-pill px-3 py-1' : 'rounded-pill px-3 py-1'}
+                                  onClick={() => {
+                                    setProdMaterialIds(prev => 
+                                      prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
+                                    );
+                                  }}
+                                >
+                                  {isSelected ? `✓ ${m.nombre}` : `+ ${m.nombre}`}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          <Form.Text className="text-muted small mt-1 d-block">
+                            Hacé clic sobre los materiales para activarlos o desactivarlos.
                           </Form.Text>
                         </Form.Group>
 
@@ -2339,17 +2396,28 @@ export const AdminDashboardModal: React.FC = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="auth-label">Material</Form.Label>
-              <Form.Select
-                value={editProdMaterialId}
-                onChange={(e) => setEditProdMaterialId(e.target.value)}
-                className="form-control-custom"
-              >
-                <option value="">— Sin material —</option>
-                {materials.filter(m => m.activo).map(m => (
-                  <option key={m.id} value={String(m.id)}>{m.nombre}</option>
-                ))}
-              </Form.Select>
+              <Form.Label className="auth-label d-block">Materiales (podés seleccionar más de uno)</Form.Label>
+              <div className="d-flex flex-wrap gap-2 pt-1">
+                {materials.filter(m => m.activo).map(m => {
+                  const isSelected = editProdMaterialIds.includes(m.id);
+                  return (
+                    <Button
+                      key={m.id}
+                      type="button"
+                      variant={isSelected ? 'primary' : 'outline-secondary'}
+                      size="sm"
+                      className={isSelected ? 'btn-custom-primary rounded-pill px-3 py-1' : 'rounded-pill px-3 py-1'}
+                      onClick={() => {
+                        setEditProdMaterialIds(prev => 
+                          prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
+                        );
+                      }}
+                    >
+                      {isSelected ? `✓ ${m.nombre}` : `+ ${m.nombre}`}
+                    </Button>
+                  );
+                })}
+              </div>
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -2583,6 +2651,41 @@ export const AdminDashboardModal: React.FC = () => {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* MODAL DE CONFIRMACIÓN ESTILIZADO (Reemplaza window.confirm) */}
+      {/* ========================================================================= */}
+      <Modal
+        show={confirmModal.show}
+        onHide={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold fs-5 text-dark d-flex align-items-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-warning"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <span>{confirmModal.title || 'Confirmar Acción'}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="py-3 fs-6 text-secondary" style={{ whiteSpace: 'pre-line' }}>
+          {confirmModal.message}
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button
+            variant="outline-secondary"
+            onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant={confirmModal.confirmVariant || 'danger'}
+            onClick={confirmModal.onConfirm}
+            className="px-4"
+          >
+            {confirmModal.confirmBtnText || 'Confirmar'}
+          </Button>
+        </Modal.Footer>
       </Modal>
     </>
   );

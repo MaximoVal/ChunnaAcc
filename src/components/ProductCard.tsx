@@ -10,6 +10,8 @@ export interface Product {
   descripcion?: string;
   material_id?: number | null;
   material_nombre?: string | null;
+  materials?: Array<{ id: number; nombre: string; slug: string }>;
+  material_ids?: number[];
 }
 
 interface ProductCardProps {
@@ -26,6 +28,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
       currency: 'ARS'
     }).format(value);
   };
+
+  const hasMaterials = product.materials && product.materials.length > 0;
 
   return (
     <Card className="product-card h-100 shadow-sm border-0">
@@ -51,19 +55,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
         <div>
           <div className="d-flex justify-content-between align-items-start mb-2 gap-2">
             <Card.Title className="fs-5 mb-0 fw-bold" style={{ color: 'var(--color-azul-profundo)' }}>{product.nombre}</Card.Title>
-            <span 
-              className="badge rounded-pill text-uppercase px-2 py-1" 
-              style={{ 
-                fontSize: '0.68rem', 
-                backgroundColor: 'var(--color-rosa-soft)', 
-                color: 'var(--color-terracota)',
-                border: '1px solid var(--color-rosa-pastel)',
-                letterSpacing: '0.5px',
-                fontFamily: 'var(--font-body)'
-              }}
-            >
-              {product.material_nombre || product.categoria}
-            </span>
+            <div className="d-flex flex-wrap gap-1 justify-content-end">
+              {hasMaterials ? (
+                product.materials!.map(m => (
+                  <span 
+                    key={m.id}
+                    className="badge rounded-pill text-uppercase px-2 py-1" 
+                    style={{ 
+                      fontSize: '0.68rem', 
+                      backgroundColor: 'var(--color-rosa-soft)', 
+                      color: 'var(--color-terracota)',
+                      border: '1px solid var(--color-rosa-pastel)',
+                      letterSpacing: '0.5px',
+                      fontFamily: 'var(--font-body)'
+                    }}
+                  >
+                    {m.nombre}
+                  </span>
+                ))
+              ) : (
+                <span 
+                  className="badge rounded-pill text-uppercase px-2 py-1" 
+                  style={{ 
+                    fontSize: '0.68rem', 
+                    backgroundColor: 'var(--color-rosa-soft)', 
+                    color: 'var(--color-terracota)',
+                    border: '1px solid var(--color-rosa-pastel)',
+                    letterSpacing: '0.5px',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  {product.material_nombre || product.categoria}
+                </span>
+              )}
+            </div>
           </div>
           <Card.Text className="text-muted small mb-3">
             {product.descripcion || 'Accesorio artesanal de diseño exclusivo hecho a mano con materiales seleccionados.'}

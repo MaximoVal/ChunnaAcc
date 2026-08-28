@@ -256,7 +256,7 @@ export const getAdminProducts = async (req: AuthRequest, res: Response): Promise
  */
 export const createAdminProduct = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { nombre, descripcion, precio, stock, imagen, categoria, material_id, activo } = req.body;
+    const { nombre, descripcion, precio, stock, imagen, categoria, material_id, material_ids, activo } = req.body;
 
     if (!nombre || !precio || isNaN(Number(precio))) {
       res.status(400).json({
@@ -266,6 +266,10 @@ export const createAdminProduct = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
+    const parsedMaterialIds = Array.isArray(material_ids)
+      ? material_ids.map((id: any) => Number(id)).filter((id: number) => !isNaN(id))
+      : (material_id ? [Number(material_id)] : []);
+
     const productId = await ProductModel.create({
       nombre: String(nombre).trim(),
       descripcion: descripcion ? String(descripcion).trim() : null,
@@ -273,7 +277,8 @@ export const createAdminProduct = async (req: AuthRequest, res: Response): Promi
       stock: stock !== undefined && !isNaN(Number(stock)) ? Number(stock) : 10,
       imagen: imagen ? String(imagen).trim() : '/assets/im1.jpeg',
       categoria: categoria ? String(categoria).trim() : 'Pulseras',
-      material_id: material_id ? Number(material_id) : null,
+      material_id: parsedMaterialIds.length > 0 ? parsedMaterialIds[0] : null,
+      material_ids: parsedMaterialIds,
       activo: activo !== undefined ? Boolean(activo) : true
     });
 
@@ -299,7 +304,7 @@ export const createAdminProduct = async (req: AuthRequest, res: Response): Promi
 export const updateAdminProduct = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const productId = Number(req.params.id);
-    const { nombre, descripcion, precio, stock, imagen, categoria, material_id, activo } = req.body;
+    const { nombre, descripcion, precio, stock, imagen, categoria, material_id, material_ids, activo } = req.body;
 
     if (precio !== undefined && isNaN(Number(precio))) {
       res.status(400).json({
@@ -309,6 +314,10 @@ export const updateAdminProduct = async (req: AuthRequest, res: Response): Promi
       return;
     }
 
+    const parsedMaterialIds = Array.isArray(material_ids)
+      ? material_ids.map((id: any) => Number(id)).filter((id: number) => !isNaN(id))
+      : (material_id !== undefined ? (material_id ? [Number(material_id)] : []) : undefined);
+
     const updated = await ProductModel.update(productId, {
       nombre,
       descripcion,
@@ -317,6 +326,7 @@ export const updateAdminProduct = async (req: AuthRequest, res: Response): Promi
       imagen,
       categoria,
       material_id: material_id !== undefined ? (material_id ? Number(material_id) : null) : undefined,
+      material_ids: parsedMaterialIds,
       activo
     });
 
