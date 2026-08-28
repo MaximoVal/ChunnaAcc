@@ -34,7 +34,29 @@ CREATE TABLE IF NOT EXISTS users (
 
 
 -- ==========================================================
--- 3. TABLA: PRODUCTOS (products)
+-- 3. TABLA: MATERIALES (materials)
+-- Categorías de material para los accesorios (Macramé, Mostacillas, Cristales, etc.)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS materials (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL UNIQUE,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  activo TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_materials_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Precargar materiales iniciales
+INSERT INTO materials (nombre, slug, activo) VALUES
+('Macramé', 'macrame', 1),
+('Mostacillas', 'mostacillas', 1),
+('Cristales', 'cristales', 1)
+ON DUPLICATE KEY UPDATE nombre=VALUES(nombre);
+
+
+-- ==========================================================
+-- 4. TABLA: PRODUCTOS (products)
 -- Catálogo de pulseras y accesorios
 -- ==========================================================
 CREATE TABLE IF NOT EXISTS products (
@@ -45,11 +67,14 @@ CREATE TABLE IF NOT EXISTS products (
   stock INT NOT NULL DEFAULT 0,
   imagen VARCHAR(255) DEFAULT NULL,
   categoria VARCHAR(100) DEFAULT 'Pulseras',
+  material_id INT UNSIGNED DEFAULT NULL,
   activo TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_products_categoria (categoria),
-  INDEX idx_products_activo (activo)
+  INDEX idx_products_material (material_id),
+  INDEX idx_products_activo (activo),
+  FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

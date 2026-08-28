@@ -19,6 +19,25 @@ export const initDb = async () => {
     console.warn('   (Las tablas existentes seguirán operativas)');
   }
 
+  // 1.5 Asegurar que la columna material_id exista en la tabla products si la tabla ya existía
+  try {
+    const [columnsResult]: any = await sequelize.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'products' 
+        AND COLUMN_NAME = 'material_id';
+    `);
+    if (!columnsResult || columnsResult.length === 0) {
+      await sequelize.query(`
+        ALTER TABLE products ADD COLUMN material_id INT UNSIGNED NULL AFTER categoria;
+      `);
+      console.log('✅ [INIT DB] Columna "material_id" agregada dinámicamente a la tabla products.');
+    }
+  } catch (colErr: any) {
+    console.warn('⚠️ [INIT DB] Nota sobre verificación de columna material_id:', colErr.message);
+  }
+
   // 2. Precargar / Sincronizar ÚNICA cuenta de Administrador: cunna.accs@gmail.com
   try {
     const officialAdminEmail = normalizeEmail(process.env.ADMIN_EMAIL || 'cunna.accs@gmail.com');
