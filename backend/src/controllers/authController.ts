@@ -110,7 +110,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (!user) {
       res.status(401).json({
         success: false,
-        message: 'No existe ninguna cuenta registrada con este correo electrónico.'
+        message: 'Usuario y/o contraseña invalidos.'
       });
       return;
     }
@@ -120,7 +120,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (!isPasswordValid) {
       res.status(401).json({
         success: false,
-        message: 'La contraseña ingresada es incorrecta. Por favor verifícala.'
+        message: 'Usuario y/o contraseña invalidos.'
       });
       return;
     }
