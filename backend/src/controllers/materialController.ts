@@ -32,7 +32,8 @@ export const createMaterial = async (req: Request, res: Response): Promise<void>
     }
 
     const id = await MaterialModel.create({ nombre, activo });
-    res.status(201).json({ success: true, message: 'Material creado exitosamente.', id });
+    const material = await MaterialModel.findById(id);
+    res.status(201).json({ success: true, message: 'Material creado exitosamente.', material });
   } catch (error: any) {
     console.error('Error in createMaterial:', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -59,7 +60,8 @@ export const updateMaterial = async (req: Request, res: Response): Promise<void>
       return;
     }
     
-    res.status(200).json({ success: true, message: 'Material actualizado exitosamente.' });
+    const material = await MaterialModel.findById(id);
+    res.status(200).json({ success: true, message: 'Material actualizado exitosamente.', material });
   } catch (error: any) {
     console.error('Error in updateMaterial:', error);
     if (error.name === 'SequelizeUniqueConstraintError') {

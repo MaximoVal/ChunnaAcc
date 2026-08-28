@@ -868,13 +868,20 @@ export const AdminDashboardModal: React.FC = () => {
       });
 
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.success) {
         throw new Error(data.message || 'Error al crear el material.');
       }
 
-      setMaterials(prev => [...prev, data.material]);
-      setNewMaterialName('');
-      setSuccessMsg(`¡Material "${data.material.nombre}" creado con éxito!`);
+      if (data.material) {
+        setMaterials(prev => [data.material, ...prev]);
+        setNewMaterialName('');
+        setSuccessMsg(`¡Material "${data.material.nombre}" creado con éxito!`);
+      } else {
+        await fetchAdminData();
+        setNewMaterialName('');
+        setSuccessMsg('¡Material creado con éxito!');
+      }
+      triggerProductsRefresh();
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: any) {
       setErrorMsg(err.message || 'No se pudo crear el material.');
@@ -916,11 +923,15 @@ export const AdminDashboardModal: React.FC = () => {
       });
 
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.success) {
         throw new Error(data.message || 'Error al actualizar el material.');
       }
 
-      setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? data.material : m));
+      if (data.material) {
+        setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? data.material : m));
+      } else {
+        await fetchAdminData();
+      }
       setShowEditMaterialModal(false);
       setSuccessMsg(`¡Material "${editMaterialName}" actualizado con éxito!`);
       triggerProductsRefresh();
