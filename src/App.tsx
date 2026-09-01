@@ -16,10 +16,15 @@ const App: React.FC = () => {
     <AuthProvider>
       <CartProvider>
         <div className="app-container">
+          <a href="#main-content" className="skip-link">
+            Saltar al contenido principal
+          </a>
           <Header />
-          <Hero />
-          <ProductList />
-          <ContactForm />
+          <main id="main-content" tabIndex={-1}>
+            <Hero />
+            <ProductList />
+            <ContactForm />
+          </main>
           <Footer />
           
           {/* Modales globales de Autenticación, Perfil, Panel de Administrador y Carrito */}

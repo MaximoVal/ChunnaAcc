@@ -32,21 +32,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
   const hasMaterials = product.materials && product.materials.length > 0;
 
   return (
-    <Card className="product-card h-100 shadow-sm border-0">
+    <Card className="product-card h-100 shadow-sm border-0" itemScope itemType="https://schema.org/Product">
       <div 
         className="product-card-img-container position-relative" 
         onClick={() => onViewDetails(product)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onViewDetails(product);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Ver detalles de ${product.nombre}`}
         style={{ cursor: 'pointer' }}
       >
         <Card.Img 
           variant="top" 
           src={product.imagen} 
           className="product-card-img" 
-          alt={product.nombre} 
+          alt={`Pulsera artesanal ${product.nombre}`}
+          loading="lazy"
+          itemProp="image"
         />
         <div className="product-card-overlay d-flex align-items-center justify-content-center">
-          <Button variant="light" size="sm" className="fw-semibold px-3 py-2 shadow-sm rounded-pill d-inline-flex align-items-center gap-1">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <Button 
+            variant="light" 
+            size="sm" 
+            className="fw-semibold px-3 py-2 shadow-sm rounded-pill d-inline-flex align-items-center gap-1"
+            aria-label={`Ver detalles completos de ${product.nombre}`}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <span>Ver Detalles</span>
           </Button>
         </div>
@@ -54,7 +70,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
       <Card.Body className="d-flex flex-column justify-content-between p-4">
         <div>
           <div className="d-flex justify-content-between align-items-start mb-2 gap-2">
-            <Card.Title className="fs-5 mb-0 fw-bold" style={{ color: 'var(--color-azul-profundo)' }}>{product.nombre}</Card.Title>
+            <Card.Title as="h3" itemProp="name" className="fs-5 mb-0 fw-bold" style={{ color: 'var(--color-azul-profundo)' }}>
+              {product.nombre}
+            </Card.Title>
             <div className="d-flex flex-wrap gap-1 justify-content-end">
               {hasMaterials ? (
                 product.materials!.map(m => (
@@ -90,11 +108,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
               )}
             </div>
           </div>
-          <Card.Text className="text-muted small mb-3">
+          <Card.Text itemProp="description" className="text-muted small mb-3">
             {product.descripcion || 'Accesorio artesanal de diseño exclusivo hecho a mano con materiales seleccionados.'}
           </Card.Text>
         </div>
-        <div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top gap-2">
+        <div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top gap-2" itemProp="offers" itemScope itemType="https://schema.org/Offer">
+          <meta itemProp="priceCurrency" content="ARS" />
+          <meta itemProp="price" content={String(product.precio)} />
+          <meta itemProp="availability" content="https://schema.org/InStock" />
           <span className="product-price fs-4 fw-bold">{formatPrice(product.precio)}</span>
           <Button 
             className="btn-custom-primary btn-sm d-flex align-items-center gap-1 shadow-sm px-3 py-2" 
@@ -102,9 +123,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, 
               e.stopPropagation(); // Evitar que el clic abra el modal de detalle
               onAddToCart(product);
             }}
+            aria-label={`Agregar ${product.nombre} al carrito de compras`}
             title={`Añadir ${product.nombre} al carrito`}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="me-1"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="me-1" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
             <span>Agregar</span>
           </Button>
         </div>

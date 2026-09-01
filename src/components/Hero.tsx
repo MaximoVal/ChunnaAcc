@@ -4,7 +4,7 @@ import BrandLogo from './BrandLogo';
 
 export const Hero: React.FC = () => {
   return (
-    <section className="hero-section">
+    <section className="hero-section" aria-label="Bienvenida y presentación de Chunna Accesorios">
       <Container>
         <div className="py-5 d-flex flex-column align-items-center justify-content-center">
           <div className="hero-brand-badge mb-3">
@@ -15,10 +15,10 @@ export const Hero: React.FC = () => {
             Colección exclusiva de pulseras, cristales y tejidos en macramé hechos 100% a mano. Diseños únicos creados con dedicación para reflejar tu estilo con elegancia y autenticidad.
           </p>
           <div className="mt-4 d-flex gap-3 flex-wrap justify-content-center">
-            <Button href="#productos" className="btn-custom-primary btn-lg px-4 py-2 fs-5">
+            <Button href="#productos" className="btn-custom-primary btn-lg px-4 py-2 fs-5" aria-label="Ir a la sección de catálogo de productos">
               Ver Catálogo
             </Button>
-            <Button href="#contacto" className="btn-custom-secondary btn-lg px-4 py-2 fs-5 text-white" style={{ borderColor: 'rgba(247, 183, 190, 0.6)' }}>
+            <Button href="#contacto" className="btn-custom-secondary btn-lg px-4 py-2 fs-5 text-white" style={{ borderColor: 'rgba(247, 183, 190, 0.6)' }} aria-label="Ir a la sección de formulario de contacto">
               Contactanos
             </Button>
           </div>

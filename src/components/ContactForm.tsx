@@ -60,13 +60,13 @@ export const ContactForm: React.FC = () => {
   };
 
   return (
-    <section id="contacto" className="contact-section">
+    <section id="contacto" className="contact-section" aria-labelledby="contact-heading">
       <Container>
         <Row className="justify-content-center">
           <Col lg={8} md={10}>
             <div className="contact-card">
               <div className="text-center mb-4">
-                <h2 className="display-6 mb-2">Contacto</h2>
+                <h2 id="contact-heading" className="display-6 mb-2">Contacto</h2>
                 <p className="text-muted-custom" style={{ color: 'var(--color-texto)' }}>
                   ¿Tienes alguna duda o quieres realizar un pedido especial? Envíanos tu mensaje.
                 </p>
@@ -78,6 +78,7 @@ export const ContactForm: React.FC = () => {
                   dismissible 
                   onClose={() => setStatus(null)}
                   className="text-center"
+                  role="alert"
                 >
                   {status.message}
                 </Alert>
@@ -88,6 +89,7 @@ export const ContactForm: React.FC = () => {
                   <div 
                     className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center rounded"
                     style={{ backgroundColor: 'rgba(117, 34, 15, 0.7)', zIndex: 10 }}
+                    aria-live="polite"
                   >
                     <div className="text-center text-white">
                       <Spinner animation="border" variant="light" className="mb-2" />
@@ -97,7 +99,7 @@ export const ContactForm: React.FC = () => {
                 )}
 
                 <Form.Group className="mb-3" controlId="formNombre">
-                  <Form.Label className="fw-semibold">Nombre</Form.Label>
+                  <Form.Label className="fw-semibold">Nombre *</Form.Label>
                   <Form.Control 
                     type="text" 
                     placeholder="Tu nombre" 
@@ -105,12 +107,14 @@ export const ContactForm: React.FC = () => {
                     onChange={(e) => setNombre(e.target.value)}
                     className="form-control-custom"
                     disabled={loading}
+                    autoComplete="name"
+                    aria-required="true"
                     required
                   />
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="formEmail">
-                  <Form.Label className="fw-semibold">Email</Form.Label>
+                  <Form.Label className="fw-semibold">Email *</Form.Label>
                   <Form.Control 
                     type="email" 
                     placeholder="Tu correo electrónico" 
@@ -118,12 +122,14 @@ export const ContactForm: React.FC = () => {
                     onChange={(e) => setMail(e.target.value)}
                     className="form-control-custom"
                     disabled={loading}
+                    autoComplete="email"
+                    aria-required="true"
                     required
                   />
                 </Form.Group>
 
                 <Form.Group className="mb-4" controlId="formMensaje">
-                  <Form.Label className="fw-semibold">Mensaje</Form.Label>
+                  <Form.Label className="fw-semibold">Mensaje *</Form.Label>
                   <Form.Control 
                     as="textarea" 
                     rows={4} 
@@ -131,8 +137,9 @@ export const ContactForm: React.FC = () => {
                     value={mensaje}
                     onChange={(e) => setMensaje(e.target.value)}
                     className="form-control-custom"
-                    style={{ resize: 'none' }}
+                    style={{ resize: 'vertical' }}
                     disabled={loading}
+                    aria-required="true"
                     required
                   />
                 </Form.Group>
