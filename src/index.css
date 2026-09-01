@@ -364,10 +364,34 @@ h2, h3, h4, h5, h6 {
   border: 1.5px solid rgba(232, 157, 165, 0.5);
 }
 
-.contact-card h2 {
+.contact-card h2,
+.contact-card h3 {
   color: var(--color-azul-profundo);
   font-family: var(--font-title);
   font-weight: 700;
+}
+
+.btn-instagram-custom {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.2s ease;
+}
+
+.btn-instagram-custom:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(220, 39, 67, 0.35) !important;
+  opacity: 0.95;
+  color: #ffffff !important;
+}
+
+.bg-white-10 {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.hover-bg-light-trans {
+  transition: background-color 0.2s ease;
+}
+
+.hover-bg-light-trans:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .form-control-custom {

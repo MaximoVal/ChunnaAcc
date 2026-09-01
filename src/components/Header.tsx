@@ -18,13 +18,11 @@ export const Header: React.FC = () => {
 
   const { totalItems, openCart } = useCart();
 
-  const [showContacts, setShowContacts] = React.useState(false);
   const [showUser, setShowUser] = React.useState(false);
   const [visible, setVisible] = React.useState(true);
   const [isTop, setIsTop] = React.useState(true);
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const contactsTimeoutRef = React.useRef<number | null>(null);
   const userTimeoutRef = React.useRef<number | null>(null);
   const lastScrollYRef = React.useRef(0);
 
@@ -56,25 +54,9 @@ export const Header: React.FC = () => {
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      if (contactsTimeoutRef.current) window.clearTimeout(contactsTimeoutRef.current);
       if (userTimeoutRef.current) window.clearTimeout(userTimeoutRef.current);
     };
   }, []);
-
-  const handleContactsMouseEnter = () => {
-    if (window.innerWidth >= 992) {
-      if (contactsTimeoutRef.current) window.clearTimeout(contactsTimeoutRef.current);
-      setShowContacts(true);
-    }
-  };
-
-  const handleContactsMouseLeave = () => {
-    if (window.innerWidth >= 992) {
-      contactsTimeoutRef.current = window.setTimeout(() => {
-        setShowContacts(false);
-      }, 150);
-    }
-  };
 
   const handleUserMouseEnter = () => {
     if (window.innerWidth >= 992) {
@@ -88,12 +70,6 @@ export const Header: React.FC = () => {
       userTimeoutRef.current = window.setTimeout(() => {
         setShowUser(false);
       }, 150);
-    }
-  };
-
-  const handleContactsToggle = (isOpen: boolean) => {
-    if (window.innerWidth < 992) {
-      setShowContacts(isOpen);
     }
   };
 
@@ -179,103 +155,7 @@ export const Header: React.FC = () => {
           <Nav className="ms-auto align-items-lg-center gap-lg-2">
             <Nav.Link href="#productos" className="custom-nav-link">Productos</Nav.Link>
             
-            <NavDropdown
-              title={
-                <span className="d-inline-flex align-items-center">
-                  Contactos
-                  <svg
-                    width="10"
-                    height="6"
-                    viewBox="0 0 10 6"
-                    fill="none"
-                    className={`dropdown-arrow-icon ${showContacts ? 'open' : ''}`}
-                  >
-                    <path
-                      d="M1 1L5 5L9 1"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
-              }
-              id="collasible-nav-dropdown"
-              className="custom-nav-link"
-              show={showContacts}
-              onToggle={handleContactsToggle}
-              onMouseEnter={handleContactsMouseEnter}
-              onMouseLeave={handleContactsMouseLeave}
-            >
-              <NavDropdown.Item
-                href="https://www.instagram.com/chunna.accs/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="dropdown-item-custom"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="nav-svg-icon me-2"
-                >
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                </svg>
-                Instagram
-              </NavDropdown.Item>
-              <NavDropdown.Item
-                href="https://wa.me/549341000000"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="dropdown-item-custom"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="nav-svg-icon me-2"
-                >
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                </svg>
-                WhatsApp
-              </NavDropdown.Item>
-              <NavDropdown.Item
-                href="mailto:cunna.accs@gmail.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="dropdown-item-custom"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="nav-svg-icon me-2"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-                Correo Electrónico
-              </NavDropdown.Item>
-            </NavDropdown>
-            
-            <Nav.Link href="#contacto" className="custom-nav-link">Escríbenos</Nav.Link>
+            <Nav.Link href="#contacto" className="custom-nav-link">Contacto</Nav.Link>
 
             {/* Botón Carrito en Desktop */}
             <div className="d-none d-lg-block mx-2">
