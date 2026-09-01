@@ -168,7 +168,7 @@ export const ContactForm: React.FC = () => {
                       </div>
                       <div>
                         <div className="small text-white-50" style={{ fontSize: '0.75rem' }}>Origen y Envíos</div>
-                        <div className="fw-semibold small">Córdoba, Argentina (Envíos a todo el país)</div>
+                        <div className="fw-semibold small">Rosario, Santa Fe, Argentina</div>
                       </div>
                     </div>
                   </div>
